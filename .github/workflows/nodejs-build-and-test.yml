@@ -1,7 +1,7 @@
 name: Build and Test - NodeJS
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       enable_coverage:
         description: 'A boolean value indicating if coverage reporting shall be enabled. If provided the secret token is required.'
