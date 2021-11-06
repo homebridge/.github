@@ -21,6 +21,9 @@ jobs:
           node-version: ${{ inputs.node_version }}
           cache: 'npm'
 
+      - name: install
+        run: npm ci
+
       - name: eslint
         run: npm run lint --if-present
         env:
