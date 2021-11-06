@@ -1,0 +1,59 @@
+name: NPM Publish
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        description: 'Defines the node version setup to run the publish job.'
+        default: 10
+        required: false
+        type: number
+      tag:
+        description: 'Defines the tag name used to tag the published version on npm.'
+        default: 'latest'
+        required: false
+        type: string
+      npm_version_command:
+        description: 'If supplied, the `npm version` command is run before publishing with the provided string as the third argument. E.g. `patch` to run npm run patch before publishing.'
+        required: false
+        type: string
+      pre_id:
+        description: 'If `npm_version_command` is supplied, this input can be supplied to pass a value to the `--preid` argument of the `npm version` command.'
+        default: ''
+        required: false
+        type: string
+      dynamically_adjust_version:
+        description: 'If enabled, the job executes the `npm-version-script.js` script. This is used to automatically query the latest version from the npm registry.'
+        required: false
+        type: boolean
+    secrets:
+      npm_auth_token:
+        description: 'The npm access token used to publish the package'
+        required: true
+
+jobs:
+  publish_npm:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'npm'
+
+      - name: install
+        run: npm ci
+
+      - name: Adjust version
+        if: ${{ inputs.dynamically_adjust_version }}
+        run: node .github/npm-version-script.js ${{ github.ref }} ${{ inputs.tag }}
+
+      - name: npm version
+        if: ${{ inputs.npm_version_command }} != null
+        run: npm version ${{ inputs.npm_version_command }} --preid=${{ inputs.pre_id }}
+
+      - name: publish
+        run: npm publish --tag=${{ inputs.tag }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm_auth_token }}
