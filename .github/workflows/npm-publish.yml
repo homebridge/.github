@@ -54,6 +54,6 @@ jobs:
         run: npm version ${{ inputs.npm_version_command }} --preid=${{ inputs.pre_id }}
 
       - name: publish
-        run: npm publish --tag=${{ inputs.tag }}
+        run: npm publish --access public --tag=${{ inputs.tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm_auth_token }}
