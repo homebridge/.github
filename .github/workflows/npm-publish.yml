@@ -10,7 +10,6 @@ on:
         type: number
       tag:
         description: 'Defines the tag name used to tag the published version on npm.'
-        default: 'latest'
         required: false
         type: string
       npm_version_command:
@@ -53,7 +52,14 @@ jobs:
         if: ${{ inputs.npm_version_command }} != null
         run: npm version ${{ inputs.npm_version_command }} --preid=${{ inputs.pre_id }}
 
-      - name: publish
+      - name: publish (with tag)
+        if: ${{ inputs.tag == null }}
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm_auth_token }}
+
+      - name: publish (with tag)
+        if: ${{ inputs.tag != null }}
         run: npm publish --access public --tag=${{ inputs.tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm_auth_token }}
