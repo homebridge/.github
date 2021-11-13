@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discord
+    url: https://discord.gg/UANeUTm
+    about: The Homebridge Discord Community - for general HAP-NodeJS questions or help.
+  - name: Reddit
+    url: https://www.reddit.com/r/homebridge
+    about: The Homebridge Reddit Community - A place to discuss Homebridge, get help with it, ask questions about it, post plugins, and more.
