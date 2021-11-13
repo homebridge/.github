@@ -1,6 +1,6 @@
 # The global `.github` for all Homebridge projects
 
-This projects contains any sort of default or common files for the Homebridge organization
+This projects contains any sort of common and community health files for the Homebridge organization
 to be maintained in a central space.
 
 ## Reusable GitHub Workflows
