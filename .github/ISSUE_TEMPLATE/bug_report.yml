@@ -57,14 +57,31 @@ body:
         The environment description might look like the following:
           - **OS**: Ubuntu 20.04
           - **Homebridge**: 1.3.6
-          - **Node**: 16.13.0
-          - **npm**: 8.1.0
+          - **Node**: 16.13.0 (outpout of `node -v`)
+          - **npm**: 8.1.0 (output of `npm -v`)
       value: |
         - OS:
         - Software:
         - Node:
         - npm:
       render: markdown
+    validations:
+      required: true
+
+  - type: dropdown
+    id: process-supervisor
+    attributes:
+      label: Process Supervisor
+      description: Which supervisor do you use to run Homebridge Software
+      options:
+        - hb-service
+        - Docker (Mention image in `Additional Context`)
+        - systemd
+        - init-d
+        - launchctl
+        - pm2
+        - other (Explained in `Additional Context`)
+        - not applicable
     validations:
       required: true
 

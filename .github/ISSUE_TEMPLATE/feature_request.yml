@@ -14,7 +14,7 @@ body:
     attributes:
       label: Current Situation
       description: Please provide an overview of the current situation and illustrate potential problems or shortcommings.
-      placeholder: A clear and concise description of problem or situation that should be addressed.
+      placeholder: A clear and concise description of the problem or situation that should be addressed.
     validations:
       required: true
 
