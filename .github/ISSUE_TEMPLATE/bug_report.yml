@@ -90,7 +90,6 @@ body:
         - Software:
         - Node:
         - npm:
-      render: markdown
     validations:
       required: true
 
