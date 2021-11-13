@@ -74,15 +74,15 @@ body:
     id: process-supervisor
     attributes:
       label: Process Supervisor
-      description: Which supervisor do you use to run Homebridge Software
+      description: Which supervisor do you use to run Homebridge Software.
       options:
         - hb-service
-        - Docker (Mention image in `Additional Context`)
+        - Docker (Mention image name in `Additional Context`)
         - systemd
         - init-d
         - launchctl
         - pm2
-        - other (Explained in `Additional Context`)
+        - other (Explain in `Additional Context`)
         - not applicable
     validations:
       required: true

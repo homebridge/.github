@@ -47,6 +47,32 @@ body:
       required: true
 
   - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Please provide relevant log output.
+        Be sure to **remove any sennsitive information** (passwords, tokens, etc.).
+        If you have lengthy log message, please use the file upload functionality in the `Additional Context` section to supply log files.
+      placeholder: Please paste logging output. Refer to the GitHub Wiki on how to enable `DEBUG` output.
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: |
+        Please provide, if application, the content of your configuration files (e.g. `config.json`).
+        Be sure to **remove any sennsitive information** (passwords, tokens, etc.).
+        If you have lengthy configuration, please use the file upload functionality in the `Additional Context` section to supply config files.
+      placeholder: Please paste configuration ...
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
     id: environment
     attributes:
       label: Environment
@@ -72,15 +98,15 @@ body:
     id: process-supervisor
     attributes:
       label: Process Supervisor
-      description: Which supervisor do you use to run Homebridge Software
+      description: Which supervisor do you use to run Homebridge Software.
       options:
         - hb-service
-        - Docker (Mention image in `Additional Context`)
+        - Docker (Mention image name in `Additional Context`)
         - systemd
         - init-d
         - launchctl
         - pm2
-        - other (Explained in `Additional Context`)
+        - other (Explain in `Additional Context`)
         - not applicable
     validations:
       required: true
