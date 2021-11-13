@@ -1,0 +1,27 @@
+name: 🔬 Experimental Change
+description: Suggest an experimental or visionary improvement for this project.
+
+labels: ["vision"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Hi. Thanks for taking the time to contribute to the Homebridge project!
+  - type: textarea
+    id: problem
+    attributes:
+      label: Current Situation
+      description: |
+        Please provide an overview of the current situation and illustrate potential problems or shortcommings.
+      placeholder: A clear and concise description of problem that should be addressed.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Change
+      description: Please provide a description of the solution or change you propose.
+      placeholder: A clear and concise description of the solution or change you propose.
+    validations:
+      required: true
