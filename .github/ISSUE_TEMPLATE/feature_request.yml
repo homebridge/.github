@@ -1,7 +1,7 @@
-name: 🔬 Experimental Change
-description: Suggest an experimental or visionary improvement for this project.
+name: 🚀 Feature Request
+description: Suggest an improvement or a new feature for this project.
 
-labels: ["vision", "enhancement"]
+labels: ["enhancement"]
 
 body:
   - type: markdown

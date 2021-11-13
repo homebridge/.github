@@ -1,4 +1,4 @@
-name: 🪲 Bug Report
+name: 🐞 Bug Report
 description: File a bug report.
 
 labels: ["bug"]
@@ -14,6 +14,7 @@ body:
         - Avoid duplicating any existing issues which already track or resolved your problem.
         - If your issue is specific to a certain plugin, create the issue on the plugin's GitHub page instead. Only create an issue here if you are sure it's our fault.
         - Aim to find a descriptive and precise title for your bug report.
+        - Please add the `beta` label, if your issue is releated to a current beta release.
   - type: textarea
     id: analysis
     attributes:
