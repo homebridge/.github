@@ -64,7 +64,7 @@ body:
     attributes:
       label: Configuration
       description: |
-        Please provide, if application, the content of your configuration files (e.g. `config.json`).
+        Please provide, if applicable, the content of your configuration files (e.g. `config.json`).
         Be sure to **remove any sennsitive information** (passwords, tokens, etc.).
         If you have lengthy configuration, please use the file upload functionality in the `Additional Context` section to supply config files.
       placeholder: Please paste configuration ...
