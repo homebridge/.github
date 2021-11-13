@@ -39,7 +39,6 @@ body:
       description: Please provide a description of how to reproduce the issue.
       placeholder: |
         A description of how to reproduce the bug.
-
         1. In this setup or under those conditions ...
         2. Run ...
         3. Encounter error ...
@@ -72,5 +71,8 @@ body:
     id: additional-context
     attributes:
       label: Additional Context
-      description: Please provide any additional context that might be relevant for your bug report.
+      description: |
+        Please provide any additional context that might be relevant for your bug report.
+
+        It might include screenshots, configuration (files) or log output.
       placeholder: Any additional context that might be relevant for your bug report.
