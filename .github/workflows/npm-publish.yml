@@ -44,6 +44,11 @@ jobs:
       - name: install
         run: npm ci
 
+      - name: Fetch Adjust version script
+        if: ${{ inputs.dynamically_adjust_version }}
+        run: wget https://raw.githubusercontent.com/homebridge/.github/main/.github/npm-version-script.js
+        working-directory: .github
+
       - name: Adjust version
         if: ${{ inputs.dynamically_adjust_version }}
         run: node .github/npm-version-script.js ${{ github.ref }} ${{ inputs.tag }}
