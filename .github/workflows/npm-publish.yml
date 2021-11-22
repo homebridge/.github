@@ -23,6 +23,7 @@ on:
         type: string
       dynamically_adjust_version:
         description: 'If enabled, the job executes the `npm-version-script.js` script. This is used to automatically query the latest version from the npm registry.'
+        default: false
         required: false
         type: boolean
     secrets:
@@ -53,11 +54,15 @@ jobs:
         if: ${{ inputs.dynamically_adjust_version }}
         run: node .github/npm-version-script.js ${{ github.ref }} ${{ inputs.tag }}
 
-      - name: npm version
-        if: ${{ inputs.npm_version_command }} != null
+      - name: npm version (with git commit)
+        if: ${{ inputs.npm_version_command != null && inputs.dynamically_adjust_version == false }}
         run: npm version ${{ inputs.npm_version_command }} --preid=${{ inputs.pre_id }}
 
-      - name: publish (with tag)
+      - name: npm version (without git commit)
+        if: ${{ inputs.npm_version_command != null && inputs.dynamically_adjust_version }}
+        run: npm version ${{ inputs.npm_version_command }} --preid=${{ inputs.pre_id }} --no-git-tag-version
+
+      - name: publish (without tag)
         if: ${{ inputs.tag == null }}
         run: npm publish --access public
         env:
