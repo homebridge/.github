@@ -64,12 +64,12 @@ jobs:
 
       - name: publish (without tag)
         if: ${{ inputs.tag == null }}
-        run: npm publish --access public
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm_auth_token }}
 
       - name: publish (with tag)
         if: ${{ inputs.tag != null }}
-        run: npm publish --access public --tag=${{ inputs.tag }}
+        run: npm publish --tag=${{ inputs.tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm_auth_token }}
