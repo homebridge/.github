@@ -4,12 +4,8 @@
  * This scripts queries the npm registry to pull out the latest version for a given tag.
  */
 
-// TODO process arguments
-//  -tag
-//  -ref
-
 const fs = require("fs");
-// const semver = require("semver"); // TODO this has to be installed!
+const semver = require("semver");
 const child_process = require("child_process");
 const assert = require("assert");
 
@@ -41,8 +37,7 @@ function getTagVersionFromNpm(tag) {
 }
 
 function desiredTargetVersion(ref) {
-  // ref is a GitHub action ref string TODO docs
-
+  // ref is a GitHub action ref string
   if (ref.startsWith("refs/pull/")) {
     throw Error("The version script was executed inside a PR!");
   }
