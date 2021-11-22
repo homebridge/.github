@@ -67,7 +67,7 @@ const baseVersion = desiredTargetVersion(refArgument);
 
 // query the npm registry for the latest version of the provided tag name
 const latestReleasedVersion = getTagVersionFromNpm(tagArgument); // e.g. 0.7.0-beta.12
-const latestReleaseBase = semver.inc(latestReleaseBeta, "patch"); // will produce 0.7.0 (removing the preid, needed for the equality check below)
+const latestReleaseBase = semver.inc(latestReleasedVersion, "patch"); // will produce 0.7.0 (removing the preid, needed for the equality check below)
 
 let publishTag;
 if (semver.eq(baseVersion, latestReleaseBase)) { // check if we are releasing another version for the latest beta
