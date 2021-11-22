@@ -19,7 +19,7 @@ const BRANCH_VERSION_PATTERN = /^([A-Za-z]*)-(\d+.\d+.\d+)$/
 const packageJSON = JSON.parse(fs.readFileSync("package.json", "utf8"));
 
 let refArgument = process.argv[2];
-let tagArgument = process.argv[3] ?? "latest";
+let tagArgument = process.argv[3] || "latest";
 
 if (refArgument == null) {
   console.error("ref argument is missing");
