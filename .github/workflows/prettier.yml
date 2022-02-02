@@ -1,0 +1,31 @@
+name: CheckPrettier
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        description: 'Defines the node version setup to run prettier'
+        default: 12
+        required: false
+        type: number
+
+jobs:
+  prettier:
+    name: Prettier
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ inputs.node_version }}
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: install
+        run: npm ci
+
+      - name: checkPrettier
+        run: npm run checkPrettier --if-present
+        env:
+          CI: true
