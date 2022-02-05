@@ -11,10 +11,10 @@ body:
 
         Before we start, be sure you are aware of the following points:
         - Review our Troubleshooting and FAQ pages in the Wiki to ensure your issue isn't already solved by those steps.
-        - Avoid duplicating any existing issues which already track or resolved your problem.
+        - Avoid duplicating any existing issues which already track or resolve your problem.
         - If your issue is specific to a certain plugin, create the issue on the plugin's GitHub page instead. Only create an issue here if you are sure it's our fault.
         - Aim to find a descriptive and precise title for your bug report.
-        - Please add the `beta` label, if your issue is releated to a current beta release.
+        - Please add the `beta` label, if your issue is related to a current beta release.
   - type: textarea
     id: analysis
     attributes:
@@ -52,8 +52,8 @@ body:
       label: Logs
       description: |
         Please provide relevant log output.
-        Be sure to **remove any sennsitive information** (passwords, tokens, etc.).
-        If you have lengthy log message, please use the file upload functionality in the `Additional Context` section to supply log files.
+        Be sure to **remove any sensitive information** (passwords, tokens, etc.).
+        If you have a lengthy log message, please use the file upload functionality in the `Additional Context` section to supply log files.
       placeholder: Please paste logging output. Refer to the GitHub Wiki on how to enable `DEBUG` output.
       render: markdown
     validations:
@@ -65,8 +65,8 @@ body:
       label: Configuration
       description: |
         Please provide, if applicable, the content of your configuration files (e.g. `config.json`).
-        Be sure to **remove any sennsitive information** (passwords, tokens, etc.).
-        If you have lengthy configuration, please use the file upload functionality in the `Additional Context` section to supply config files.
+        Be sure to **remove any sensitive information** (passwords, tokens, etc.).
+        If you have a lengthy configuration, please use the file upload functionality in the `Additional Context` section to supply config files.
       placeholder: Please paste configuration ...
       render: json
     validations:
@@ -83,7 +83,7 @@ body:
         The environment description might look like the following:
           - **OS**: Ubuntu 20.04
           - **Homebridge**: 1.3.6
-          - **Node**: 16.13.0 (outpout of `node -v`)
+          - **Node**: 16.13.0 (output of `node -v`)
           - **npm**: 8.1.0 (output of `npm -v`)
       value: |
         - OS:
