@@ -1,0 +1,16 @@
+name: PR Labeler
+
+on:
+  workflow_call:
+    secrets:
+      token:
+        description: 'The GitHub Token'
+        required: true
+
+jobs:
+  update_release_draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: TimonVS/pr-labeler-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.token }}
