@@ -11,7 +11,7 @@ on:
 
 jobs:
   eslint:
-    name: ESLint
+    name: Lint TypeDoc
     runs-on: ubuntu-latest
 
     steps:
