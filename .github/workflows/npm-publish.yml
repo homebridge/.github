@@ -26,6 +26,11 @@ on:
         default: false
         required: false
         type: boolean
+      install_cmd:
+        description: "Defines the install command to be run. Defaults to `npm ci`."
+        default: npm ci
+        required: false
+        type: string
     secrets:
       npm_auth_token:
         description: 'The npm access token used to publish the package'
@@ -44,7 +49,7 @@ jobs:
           cache: 'npm'
 
       - name: install
-        run: npm ci
+        run: ${{ inputs.install_cmd }}
 
       - name: Fetch Adjust version script
         if: ${{ inputs.dynamically_adjust_version }}

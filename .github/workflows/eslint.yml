@@ -8,6 +8,11 @@ on:
         default: 16
         required: false
         type: number
+      install_cmd:
+        description: "Defines the install command to be run. Defaults to `npm ci`."
+        default: npm ci
+        required: false
+        type: string
 
 jobs:
   eslint:
@@ -23,7 +28,7 @@ jobs:
           cache: 'npm'
 
       - name: install
-        run: npm ci
+        run: ${{ inputs.install_cmd }}
 
       - name: eslint
         run: npm run lint --if-present
