@@ -42,7 +42,7 @@ jobs:
           cache: 'npm'
 
       - name: install
-        run: ${{ install_cmd }}
+        run: ${{ inputs.install_cmd }}
         env:
           CI: true
       - name: build
