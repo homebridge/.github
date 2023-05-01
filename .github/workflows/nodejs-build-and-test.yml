@@ -9,11 +9,15 @@ on:
         required: false
         type: boolean
       runs_on:
-        description: "Defines the operating system the action should run on. Defaults to ubuntu-latest"
+        description: "Defines the operating system the action should run on. Defaults to ubuntu-latest."
         default: "ubuntu-latest"
         required: false
         type: string
-
+      install_cmd:
+        description: "Defines the install command to be run. Defaults to `npm ci`."
+        default: npm ci
+        required: false
+        type: string
     secrets:
       token:
         description: 'The GitHub Token which is used to push to Coveralls'
@@ -38,7 +42,7 @@ jobs:
           cache: 'npm'
 
       - name: install
-        run: npm ci
+        run: ${{ install_cmd }}
         env:
           CI: true
       - name: build
