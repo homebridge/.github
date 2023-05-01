@@ -8,6 +8,12 @@ on:
         default: false
         required: false
         type: boolean
+      runs_on:
+        description: "Defines the operating system the action should run on. Defaults to ubuntu-latest"
+        default: "ubuntu-latest"
+        required: false
+        type: string
+
     secrets:
       token:
         description: 'The GitHub Token which is used to push to Coveralls'
@@ -20,9 +26,8 @@ jobs:
       fail-fast: false
       matrix:
         node_version: [14, 16, 18]
-        os: [ubuntu-latest]
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ inputs.runs_on }}
 
     steps:
       - uses: actions/checkout@v2
