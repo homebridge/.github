@@ -16,14 +16,14 @@ name: Call a reusable workflow
 on:
   pull_request:
     branches:
-      - main
+      - latest
 
 jobs:
   call-workflow:
-    uses: homebridge/.github/.github/workflows/example-workflow.yml@main
+    uses: homebridge/.github/.github/workflows/example-workflow.yml@latest
 
   call-workflow-passing-data:
-    uses: homebridge/.github/.github/workflows/example-workflow.yml@main
+    uses: homebridge/.github/.github/workflows/example-workflow.yml@latest
     with:
       username: mona
     secrets:
