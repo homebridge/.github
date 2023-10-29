@@ -59,7 +59,7 @@ function desiredTargetVersion(ref) {
     return packageJSON.betaVersion
   }
 
-  throw new Error("Malformed branch name for ref: " + ref + ". Can't derive the base version. Use a branch name like: beta-x.x.x!");
+  throw new Error(`Malformed branch name for ref: ${ref}. Can't derive the base version. Use a branch name like: beta-x.x.x`);
 }
 
 // derive the base version from the branch ref
