@@ -31,8 +31,8 @@ if (refArgument == null) {
 function getTagVersionFromNpm(tag) {
   try {
     // once-only workaround for homebridge-config-ui-x which we are renaming the test tag to beta
-    if (packageJSON.name === "homebridge-config-ui-x" && tag === "test") {
-      tag = "beta";
+    if (packageJSON.name === "homebridge-config-ui-x" && tag === "beta") {
+      tag = "test";
     }
     return child_process.execSync(`npm info ${packageJSON.name} version --tag="${tag}"`).toString("utf8").trim();
   } catch (e) {
