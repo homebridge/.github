@@ -30,8 +30,13 @@ if (refArgument == null) {
  */
 function getTagVersionFromNpm(tag) {
   try {
+    // once-only workaround for homebridge-config-ui-x which we are renaming the test tag to beta
+    if (packageJSON.name === "homebridge-config-ui-x" && tag === "test") {
+      tag = "beta";
+    }
     return child_process.execSync(`npm info ${packageJSON.name} version --tag="${tag}"`).toString("utf8").trim();
   } catch (e) {
+    console.error(`Failed to query the npm registry for the latest version for tag: ${tag}`);
     throw e;
   }
 }
@@ -59,7 +64,7 @@ function desiredTargetVersion(ref) {
     return packageJSON.betaVersion
   }
 
-  throw new Error("Malformed branch name for ref: " + ref + ". Can't derive the base version. Use a branch name like: beta-x.x.x!");
+  throw new Error(`Malformed branch name for ref: ${ref}. Can't derive the base version. Use a branch name like: beta-x.x.x`);
 }
 
 // derive the base version from the branch ref
@@ -79,3 +84,8 @@ if (semver.eq(baseVersion, latestReleaseBase)) { // check if we are releasing an
 // save the package.json
 packageJSON.version = publishTag;
 fs.writeFileSync("package.json", JSON.stringify(packageJSON, null, 2));
+
+// perform the same change to the package-lock.json
+const packageLockJSON = JSON.parse(fs.readFileSync("package-lock.json", "utf8"));
+packageLockJSON.version = publishTag;
+fs.writeFileSync("package-lock.json", JSON.stringify(packageLockJSON, null, 2));
