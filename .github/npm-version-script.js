@@ -79,3 +79,8 @@ if (semver.eq(baseVersion, latestReleaseBase)) { // check if we are releasing an
 // save the package.json
 packageJSON.version = publishTag;
 fs.writeFileSync("package.json", JSON.stringify(packageJSON, null, 2));
+
+// perform the same change to the package-lock.json
+const packageLockJSON = JSON.parse(fs.readFileSync("package-lock.json", "utf8"));
+packageLockJSON.version = publishTag;
+fs.writeFileSync("package-lock.json", JSON.stringify(packageLockJSON, null, 2));
