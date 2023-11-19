@@ -60,7 +60,12 @@ function desiredTargetVersion(ref) {
     return packageJSON.betaVersion
   }
 
-  throw new Error(`Malformed branch name for ref: ${ref}. Can't derive the base version. Use a branch name like: beta-x.x.x`);
+  // legacy mode were we use the `alphaVersion` property in the package.json
+  if (branchName === "alpha" && packageJSON.alphaVersion) {
+    return packageJSON.alphaVersion
+  }
+
+  throw new Error(`Malformed branch name for ref: ${ref}. Can't derive the base version. Use a branch name like: beta-x.x.x or alpha-x.x.x`);
 }
 
 // derive the base version from the branch ref
@@ -71,10 +76,10 @@ const latestReleasedVersion = getTagVersionFromNpm(tagArgument); // e.g. 0.7.0-b
 const latestReleaseBase = semver.inc(latestReleasedVersion, "patch"); // will produce 0.7.0 (removing the preid, needed for the equality check below)
 
 let publishTag;
-if (semver.eq(baseVersion, latestReleaseBase)) { // check if we are releasing another version for the latest beta
-  publishTag = latestReleasedVersion; // set the current latest beta to be incremented
+if (semver.eq(baseVersion, latestReleaseBase)) { // check if we are releasing another version for the latest beta or alpha
+  publishTag = latestReleasedVersion; // set the current latest beta or alpha to be incremented
 } else {
-  publishTag = baseVersion; // start of with a new beta version
+  publishTag = baseVersion; // start of with a new beta or alpha version
 }
 
 // save the package.json
