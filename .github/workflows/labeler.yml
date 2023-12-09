@@ -21,5 +21,4 @@ jobs:
     steps:
       - uses: actions/labeler@v5
         with:
-          configuration-path: '.github/labeler.yml'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
