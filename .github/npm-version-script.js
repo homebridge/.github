@@ -33,7 +33,8 @@ function getTagVersionFromNpm(tag) {
     return child_process.execSync(`npm info ${packageJSON.name} version --tag="${tag}"`).toString("utf8").trim();
   } catch (e) {
     console.error(`Failed to query the npm registry for the latest version for tag: ${tag}`);
-    throw e;
+    // throw e;
+    return "0.0.0";
   }
 }
 

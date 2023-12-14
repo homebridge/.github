@@ -35,6 +35,10 @@ on:
       npm_auth_token:
         description: 'The npm access token used to publish the package'
         required: true
+    outputs:
+      NPM_VERSION:
+        value: ${{ jobs.publish_npm.outputs.NPM_VERSION }}
+
 
 jobs:
   publish_npm:
@@ -53,7 +57,7 @@ jobs:
 
       - name: Fetch Adjust version script
         if: ${{ inputs.dynamically_adjust_version }}
-        run: wget https://raw.githubusercontent.com/homebridge/.github/latest/.github/npm-version-script.js
+        run: wget -q https://raw.githubusercontent.com/homebridge/.github/latest/.github/npm-version-script.js
         working-directory: .github
 
       - name: Adjust version
@@ -79,3 +83,10 @@ jobs:
         run: npm publish --access public --tag=${{ inputs.tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm_auth_token }}
+
+      - name: Return NPM Package Version
+        id: package-version
+        uses: martinbeentjes/npm-get-version-action@v1.3.1
+
+    outputs:
+      NPM_VERSION: ${{ steps.package-version.outputs.current-version }}
