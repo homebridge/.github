@@ -2,10 +2,6 @@ name: Release Drafter
 
 on:
   workflow_call:
-    inputs:
-      config-name:
-        required: false
-        type: string
     secrets:
       token:
         description: 'The GitHub Token'
@@ -18,5 +14,3 @@ jobs:
       - uses: release-drafter/release-drafter@v5
         env:
           GITHUB_TOKEN: ${{ secrets.token }}
-        with:
-          config-name: ${{  inputs.config-name || '.github/release-drafter.yml' }}
