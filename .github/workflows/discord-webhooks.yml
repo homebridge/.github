@@ -42,7 +42,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Latest Release
         if: ${{ github.event.release.prerelease == false }}
-        uses: SethCohen/github-releases-to-discord@v1.13.1
+        uses: SethCohen/github-releases-to-discord@v1.15.0
         with:
           webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
           color: ${{ inputs.color || '4726621'}}
@@ -54,7 +54,7 @@ jobs:
     
       - name: Pre-Release
         if: ${{ github.event.release.prerelease == true }}
-        uses: SethCohen/github-releases-to-discord@v1.13.1
+        uses: SethCohen/github-releases-to-discord@v1.15.0
         with:
           webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL_BETA }}
           color: ${{ inputs.color || '4726621'}}

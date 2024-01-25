@@ -63,7 +63,7 @@ jobs:
 
       - name: Coveralls Parallel
         if: ${{ inputs.enable_coverage }}
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.github_token }}
           flag-name: run-${{ matrix.node_version }}
@@ -79,7 +79,7 @@ jobs:
 
     steps:
       - name: Coveralls Finished
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.token }}
           parallel-finished: true
