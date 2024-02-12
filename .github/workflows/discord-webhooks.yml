@@ -29,9 +29,9 @@ on:
         type: string
     secrets:
       DISCORD_WEBHOOK_URL_LATEST:
-        required: true
+        required: false
       DISCORD_WEBHOOK_URL_BETA:
-        required: true
+        required: false
 
 jobs:
   github-releases-to-discord:
