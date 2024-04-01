@@ -2,7 +2,7 @@
 
 ## Guidelines
 
-* **Node 10 LTS:** Homebridge projects have (if not stated otherwise) a minimum Node version requirement of 10.17.0.
+* **Node 18 LTS:** Homebridge projects have (if not stated otherwise) a minimum Node version requirement of 18.15.0.
   Pull requests MUST NOT require a Node version greater than that unless the feature is
   enabled/backported via [TypeScript][link-typescript]. If a higher version requirement may be justified 
   you SHALL include your reasoning in the pull request discussion.
