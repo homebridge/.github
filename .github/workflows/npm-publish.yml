@@ -43,6 +43,8 @@ on:
 jobs:
   publish_npm:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -74,13 +76,13 @@ jobs:
 
       - name: publish (without tag)
         if: ${{ inputs.tag == null }}
-        run: npm publish --access public
+        run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm_auth_token }}
 
       - name: publish (with tag)
         if: ${{ inputs.tag != null }}
-        run: npm publish --access public --tag=${{ inputs.tag }}
+        run: npm publish --access public --tag=${{ inputs.tag }} --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm_auth_token }}
 
