@@ -5,7 +5,7 @@ on:
     inputs:
       node_version:
         description: Defines the node version setup to run the linter
-        default: lts
+        default: 22
         required: false
         type: number
       install_cmd:
