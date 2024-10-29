@@ -5,7 +5,7 @@ on:
     inputs:
       node_version:
         description: Defines the node version setup to run the publish job.
-        default: 18
+        default: lts
         required: false
         type: number
       tag:
