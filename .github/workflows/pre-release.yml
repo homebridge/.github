@@ -1,0 +1,28 @@
+name: Pre Release
+
+on:
+  workflow_call:
+    inputs:
+      npm_version:
+        type: string
+      body:
+        type: string
+
+jobs:
+  github_prerelease:
+    runs-on: ubuntu-latest
+    name: Create New Github Beta Pre Release
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create nightly release
+        id: create_release
+        uses: viperproject/create-nightly-release@v1
+        env:
+          # This token is provided by Actions, you do not need to create your own token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ inputs.npm_version }}
+          release_name: v${{ inputs.npm_version  }}
+          body: ${{ inputs.body }}
+          keep_num: 2
+          keep_tags: false
