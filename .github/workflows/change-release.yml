@@ -1,0 +1,20 @@
+name: Change Release
+
+on:
+  workflow_call:
+    secrets:
+          token:
+            description: 'The GitHub Token which is used for the action bot'
+            required: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: dropseed/changerelease@v1
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        # optional
+        tag_prefix: v
+        changelog: CHANGELOG.md
+        limit: 100
