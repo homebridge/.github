@@ -19,7 +19,7 @@ const packageJSON = JSON.parse(fs.readFileSync('package.json', 'utf8'))
 const refArgument = process.argv[2]
 const tagArgument = process.argv[3] || 'latest'
 
-if (refArgument === null) {
+if (!refArgument) {
   console.error('ref argument is missing')
   console.error('Usage: npm-version-script-esm.js <ref> [tag]')
   process.exit(1)
