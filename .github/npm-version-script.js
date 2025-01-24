@@ -9,8 +9,6 @@ const child_process = require('node:child_process')
 const fs = require('node:fs')
 const process = require('node:process')
 
-const semver = require('semver')
-
 const BRANCH_VERSION_PATTERN = /^([A-Z]+)-(\d+\.\d+\.\d+)$/i
 
 // Load the contents of the package.json file
@@ -26,17 +24,22 @@ if (!refArgument) {
 }
 
 /**
- * Queries the NPM registry for the latest version for the provided tag.
- * @param tag The tag to query for.
- * @returns {string} Returns the version.
+ * Queries the NPM registry for the latest version for the provided base version and tag.
+ * If the tag is latest, then the base version is returned if it exists. For other tags, the latest
+ * version found for that base version and tag is returned.
+ * @param baseVersion The base version to query for, e.g. 2.0.0
+ * @param tag The tag to query for, e.g. beta or latest
+ * @returns {string} Returns the version, or '' if not found
  */
-function getTagVersionFromNpm(tag) {
+function getTagVersionFromNpm(baseVersion, tag) {
   try {
-    return child_process.execSync(`npm info ${packageJSON.name} version --tag="${tag}"`).toString('utf8').trim()
+    return JSON.parse(child_process.execSync(`npm info ${packageJSON.name} versions --json`).toString('utf8').trim())
+      .filter(v => tag === 'latest' ? v === baseVersion : v.startsWith(`${baseVersion}-${tag}.`)) // find all published versions for this base version and tag
+      .reduce((_, current) => current, '') // choose the last as they're sorted in ascending order, or '' if there are none
   } catch (e) {
-    console.error(`Failed to query the npm registry for the latest version for tag: ${tag}`)
+    console.error(`Failed to query the npm registry for the latest version for tag: ${tag}`, e)
     // throw e;
-    return '0.0.0'
+    return ''
   }
 }
 
@@ -65,21 +68,30 @@ function desiredTargetVersion(ref) {
 const baseVersion = desiredTargetVersion(refArgument)
 
 // query the npm registry for the latest version of the provided tag name
-const latestReleasedVersion = getTagVersionFromNpm(tagArgument) // e.g. 0.7.0-beta.12
-const latestReleaseBase = semver.inc(latestReleasedVersion, 'patch') // will produce 0.7.0 (removing the preid, needed for the equality check below)
+const latestReleasedVersion = getTagVersionFromNpm(baseVersion, tagArgument) // e.g. 0.7.0-beta.12
 
 let publishTag
-if (semver.eq(baseVersion, latestReleaseBase)) { // check if we are releasing another version for the latest beta or alpha
-  publishTag = latestReleasedVersion // set the current latest beta or alpha to be incremented
+
+if (latestReleasedVersion) {
+  console.log(`Latest published version for ${baseVersion} with tag ${tagArgument} is ${latestReleasedVersion}`)
+  publishTag = latestReleasedVersion // set this released beta or alpha to be incremented
 } else {
-  publishTag = baseVersion // start of with a new beta or alpha version
+  console.log(`No published versions for ${baseVersion} with tag ${tagArgument}`)
+  publishTag = baseVersion // start off with a new beta or alpha version
 }
 
-// save the package.json
-packageJSON.version = publishTag
-fs.writeFileSync('package.json', JSON.stringify(packageJSON, null, 2))
+if (packageJSON.version !== publishTag) {
+  // report the change for CI
+  console.log(`Changing version in package.json from ${packageJSON.version} to ${publishTag}`)
 
-// perform the same change to the package-lock.json
-const packageLockJSON = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'))
-packageLockJSON.version = publishTag
-fs.writeFileSync('package-lock.json', JSON.stringify(packageLockJSON, null, 2))
+  // save the package.json
+  packageJSON.version = publishTag
+  fs.writeFileSync('package.json', JSON.stringify(packageJSON, null, 2))
+
+  // perform the same change to the package-lock.json
+  const packageLockJSON = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'))
+  packageLockJSON.version = publishTag
+  fs.writeFileSync('package-lock.json', JSON.stringify(packageLockJSON, null, 2))
+} else {
+  console.log(`Leaving version in package.json at ${packageJSON.version}`)
+}
