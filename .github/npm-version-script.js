@@ -53,7 +53,7 @@ function desiredTargetVersion(ref) {
   const branchName = ref.slice('refs/heads/'.length)
 
   const results = branchName.match(BRANCH_VERSION_PATTERN)
-  if (results != null) {
+  if (results !== null) {
     if (results[1] !== tagArgument) {
       console.warn(`The base branch name (${results[1]}) differs from the tag name ${tagArgument}`)
     }
