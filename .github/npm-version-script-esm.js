@@ -73,16 +73,16 @@ const latestReleasedVersion = getTagVersionFromNpm(baseVersion, tagArgument) // 
 let publishTag
 
 if (latestReleasedVersion) {
-  console.log(`Latest published version for ${baseVersion} with tag ${tagArgument} is ${latestReleasedVersion}`)
+  console.warn(`Latest published version for ${baseVersion} with tag ${tagArgument} is ${latestReleasedVersion}`)
   publishTag = latestReleasedVersion // set this released beta or alpha to be incremented
 } else {
-  console.log(`No published versions for ${baseVersion} with tag ${tagArgument}`)
+  console.warn(`No published versions for ${baseVersion} with tag ${tagArgument}`)
   publishTag = baseVersion // start off with a new beta or alpha version
 }
 
 if (packageJSON.version !== publishTag) {
   // report the change for CI
-  console.log(`Changing version in package.json from ${packageJSON.version} to ${publishTag}`)
+  console.warn(`Changing version in package.json from ${packageJSON.version} to ${publishTag}`)
 
   // save the package.json
   packageJSON.version = publishTag
@@ -93,5 +93,5 @@ if (packageJSON.version !== publishTag) {
   packageLockJSON.version = publishTag
   fs.writeFileSync('package-lock.json', JSON.stringify(packageLockJSON, null, 2))
 } else {
-  console.log(`Leaving version in package.json at ${packageJSON.version}`)
+  console.warn(`Leaving version in package.json at ${packageJSON.version}`)
 }
