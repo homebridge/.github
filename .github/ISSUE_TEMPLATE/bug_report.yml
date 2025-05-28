@@ -83,7 +83,7 @@ body:
         The environment description might look like the following:
           - **OS**: Ubuntu 20.04
           - **Homebridge**: 1.6.1
-          - **Node**: 18.18.0 (output of `node -v`)
+          - **Node**: 22.10.0 (output of `node -v`)
           - **npm**: 9.8.1 (output of `npm -v`)
       value: |
         - OS:

@@ -3,6 +3,10 @@ name: Build and Test - NodeJS
 on:
   workflow_call:
     inputs:
+      node_versions:
+        description: Optional list of Node.js versions to test against (comma-separated), e.g. `["18","20"]`.
+        required: false
+        type: string
       enable_coverage:
         description: A boolean value indicating if coverage reporting shall be enabled. If provided the secret token is required.
         default: false
@@ -29,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node_version: [18, 20, 22]
+        node_version: ${{ fromJson(inputs.node_versions || '["20","22"]') }}
 
     runs-on: ${{ inputs.runs_on }}
 
