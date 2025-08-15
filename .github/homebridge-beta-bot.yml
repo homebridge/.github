@@ -1,4 +1,4 @@
-name: Update Beta Dependencies
+name: Update Beta Dependencies - homebridge Beta Bot
 
 # reusable bot to manage a package.json file for the latest beta version
 #
@@ -30,6 +30,7 @@ on:
 
 jobs:
   update:
+    name: homebridge Beta Bot
     runs-on: ubuntu-latest
     outputs:
       changes_detected: ${{ steps.check-changes.outputs.changes_detected }}
@@ -50,7 +51,7 @@ jobs:
           node-version: 'latest'
       - name: Install jq
         run: sudo apt-get install -y jq
-      - name: Load config file
+      - name: Load config file - ${{ inputs.config_file }}
         id: load-config
         run: |
           config="${{ inputs.config_file }}"
@@ -85,7 +86,7 @@ jobs:
           echo "user_email=$user_email" >> $GITHUB_OUTPUT
           echo "auto_merge=$auto_merge" >> $GITHUB_OUTPUT
           echo "dirs_length=$dirs_length" >> $GITHUB_OUTPUT
-      - name: Configure Git identity
+      - name: Configure Git identity - ${{ steps.load-config.outputs.user_name }}
         run: |
           git config user.name "${{ steps.load-config.outputs.user_name }}"
           git config user.email "${{ steps.load-config.outputs.user_email }}"
