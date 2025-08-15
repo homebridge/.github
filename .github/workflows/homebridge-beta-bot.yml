@@ -13,10 +13,6 @@ on:
         description: 'Path to the beta-bot configuration file'
         type: string
         default: '.github/homebridge-beta-bot.json'
-    secrets:
-      github_token:
-        description: 'GitHub token for repository access and operations'
-        required: true
     outputs:
       changes_detected:
         description: 'Whether changes were detected in any directories'
