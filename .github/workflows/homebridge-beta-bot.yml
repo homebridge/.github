@@ -15,6 +15,17 @@ on:
       GH_TOKEN:
         description: 'GitHub Personal Access Token for PR approval'
         required: true
+    outputs:
+      changes_detected:
+        description: 'Whether changes were detected in any directories'
+        value: ${{ jobs.update.outputs.changes_detected }}
+      changed_dirs:
+        description: 'Comma-separated list of directories with changes'
+        value: ${{ jobs.update.outputs.changed_dirs }}
+      auto_merge:
+        description: 'Whether auto-merge is enabled'
+        value: ${{ jobs.update.outputs.auto_merge }}
+        
 jobs:
   update:
     name: homebridge Beta Bot
