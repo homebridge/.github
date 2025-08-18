@@ -1,11 +1,9 @@
 name: Update Beta Dependencies - homebridge Beta Bot
-
 # reusable bot to manage a package.json file for the latest beta version
 #
-# Creates a pull request and merges 
+# Creates a pull request and merges
 #
 # Used by homebridge-apt-pkg and docker-homebridge
-
 on:
   workflow_call:
     inputs:
@@ -13,17 +11,10 @@ on:
         description: 'Path to the beta-bot configuration file'
         type: string
         default: '.github/homebridge-beta-bot.json'
-    outputs:
-      changes_detected:
-        description: 'Whether changes were detected in any directories'
-        value: ${{ jobs.update.outputs.changes_detected }}
-      changed_dirs:
-        description: 'Comma-separated list of directories with changes'
-        value: ${{ jobs.update.outputs.changed_dirs }}
-      auto_merge:
-        description: 'Whether auto-merge is enabled'
-        value: ${{ jobs.update.outputs.auto_merge }}
-
+    secrets:
+      GH_TOKEN:
+        description: 'GitHub Personal Access Token for PR approval'
+        required: true
 jobs:
   update:
     name: homebridge Beta Bot
