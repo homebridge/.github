@@ -1,0 +1,111 @@
+name: Update Beta Version
+
+on:
+  workflow_call:
+    inputs:
+      base-branch:
+        description: "Branch the PR should target (usually 'latest')"
+        required: true
+        type: string
+    secrets:
+      github-token:
+        required: true
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    if: startsWith(github.head_ref, 'beta-') && startsWith(github.event.pull_request.title, 'v')
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Extract version from PR title
+        id: extract_version
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          VERSION=$(echo "$TITLE" | sed -nE 's/^v([0-9]+\.[0-9]+\.[0-9]+).*$/\1/p')
+          if [ -z "$VERSION" ]; then
+            echo "No valid version found in PR title: $TITLE"
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Update package.json and package-lock.json
+        run: |
+          VERSION="${{ steps.extract_version.outputs.version }}"
+          echo "Updating package.json and package-lock.json to version $VERSION"
+          npm version "$VERSION" --no-git-tag-version
+          npm install --package-lock-only
+
+      - name: Fetch base branch
+        run: |
+          git fetch origin ${{ inputs.base-branch }}:${{ inputs.base-branch }}
+
+      - name: Update CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token }}
+        run: |
+          VERSION="${{ steps.extract_version.outputs.version }}"
+          TODAY=$(date +"%Y-%m-%d")
+          REPO="${GITHUB_REPOSITORY}"
+          BASE=${{ inputs.base-branch }}
+
+          # Find previous version from latest tag
+          PREV_TAG=$(git describe --tags --abbrev=0 origin/$BASE || echo "")
+
+          echo "Previous tag: $PREV_TAG"
+          echo "New version: $VERSION"
+
+          # Collect commit messages
+          COMMITS=$(git log origin/$BASE..HEAD --pretty=format:"- %s ([%h](https://github.com/$REPO/commit/%H))")
+
+          if [ -z "$COMMITS" ]; then
+            echo "No commits found between $BASE and this branch."
+            exit 0
+          fi
+
+          HEADER="## [$VERSION](https://github.com/$REPO/releases/tag/v$VERSION) ($TODAY)"
+          BODY="### What's Changed"$'\n'"$COMMITS"
+          FOOTER="**Full Changelog**: https://github.com/$REPO/compare/${PREV_TAG}...v$VERSION"
+          ENTRY="$HEADER\n\n$BODY\n\n$FOOTER\n"
+
+          # Insert entry right after "# Changelog" section
+          awk -v entry="$ENTRY" '
+            BEGIN { inserted=0; done=0 }
+            /^# Changelog/ {
+              print;
+              next
+            }
+            !inserted && /^All notable changes/ {
+              print;
+              print "";
+              print entry;
+              inserted=1;
+              next
+            }
+            { print }
+          ' CHANGELOG.md > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
+
+      - name: Commit changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token }}
+        run: |
+          VERSION="${{ steps.extract_version.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json CHANGELOG.md
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: prepare $VERSION (bump version, update changelog)"
+            git push
+          fi
