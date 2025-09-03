@@ -1,5 +1,5 @@
-name: Update Beta Dependencies - homebridge Beta Bot
-# reusable bot to manage a package.json file for the latest beta version
+name: Update ${{ inputs.release_stream }} Dependencies - homebridge ${{ inputs.release_stream }} Bot
+# reusable bot to manage a package.json file for the latest release version
 #
 # Creates a pull request and merges
 #
@@ -11,6 +11,10 @@ on:
         description: 'Path to the beta-bot configuration file'
         type: string
         default: '.github/homebridge-beta-bot.json'
+      release_stream:
+        description: 'Release stream to update (beta or alpha)'
+        type: string
+        default: 'beta'
     secrets:
       GH_TOKEN:
         description: 'GitHub Personal Access Token for PR approval'
@@ -28,7 +32,7 @@ on:
         
 jobs:
   update:
-    name: homebridge Beta Bot
+    name: homebridge ${{ inputs.release_stream }} Bot
     runs-on: ubuntu-latest
     outputs:
       changes_detected: ${{ steps.check-changes.outputs.changes_detected }}
@@ -165,9 +169,10 @@ jobs:
         if: steps.check-changes.outputs.changes_detected == 'true'
         run: |
           changed_dirs="${{ steps.check-changes.outputs.changed_dirs }}"
-          branch="update/beta-$(date +%s)"
+          release_stream="${{ inputs.release_stream }}"
+          branch="update/$release_stream-$(date +%s)"
           git checkout -b "$branch"
-          git commit -m "Update beta dependencies in $changed_dirs"
+          git commit -m "Update $release_stream dependencies in $changed_dirs"
           git push origin "$branch"
           echo "::notice::Branch pushed: $branch"
           echo "branch_name=$branch" >> $GITHUB_OUTPUT
@@ -179,7 +184,9 @@ jobs:
         run: |
           branch="${{ steps.create-branch.outputs.branch_name }}"
           changed_dirs="${{ steps.check-changes.outputs.changed_dirs }}"
-          pr_url=$(gh pr create --title "BETA: Update beta dependencies in $changed_dirs" --body "Automated dependency update" --label beta)
+          release_stream="${{ inputs.release_stream }}"
+          release_stream_upper=$(echo "$release_stream" | tr '[:lower:]' '[:upper:]')
+          pr_url=$(gh pr create --title "$release_stream_upper: Update $release_stream dependencies in $changed_dirs" --body "Automated dependency update" --label "$release_stream")
           pr_number="${pr_url##*/}"
           echo "::notice::Pull request created: #$pr_number ($pr_url)"
           echo "PR created: $pr_url"
