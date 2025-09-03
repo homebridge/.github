@@ -57,6 +57,7 @@ jobs:
       - name: Load config file - ${{ inputs.config_file }}
         id: load-config
         run: |
+          echo "::group::📋 Loading and validating configuration"
           config="${{ inputs.config_file }}"
           config_abs="$(pwd)/$config"
           if [ ! -f "$config_abs" ]; then
@@ -89,14 +90,18 @@ jobs:
           echo "user_email=$user_email" >> $GITHUB_OUTPUT
           echo "auto_merge=$auto_merge" >> $GITHUB_OUTPUT
           echo "dirs_length=$dirs_length" >> $GITHUB_OUTPUT
+          echo "::endgroup::"
       - name: Configure Git identity - ${{ steps.load-config.outputs.user_name }}
         run: |
+          echo "::group::⚙️ Configuring Git identity"
           git config user.name "${{ steps.load-config.outputs.user_name }}"
           git config user.email "${{ steps.load-config.outputs.user_email }}"
           echo "Git identity configured: ${{ steps.load-config.outputs.user_name }} <${{ steps.load-config.outputs.user_email }}>"
+          echo "::endgroup::"
       - name: Process directories and packages
         id: process-dirs
         run: |
+          echo "::group::📦 Processing directories and packages"
           config="${{ steps.load-config.outputs.config_abs }}"
           dirs_length="${{ steps.load-config.outputs.dirs_length }}"
           echo "Found $dirs_length directories in config"
@@ -131,9 +136,11 @@ jobs:
             cd - > /dev/null
             echo "Completed processing $dir"
           done
+          echo "::endgroup::"
       - name: Check for changes
         id: check-changes
         run: |
+          echo "::group::🔍 Checking for changes"
           config="${{ steps.load-config.outputs.config_abs }}"
           dirs_length="${{ steps.load-config.outputs.dirs_length }}"
           changes_detected=false
@@ -165,10 +172,12 @@ jobs:
           fi
           echo "changes_detected=$changes_detected" >> $GITHUB_OUTPUT
           echo "changed_dirs=$changed_dirs" >> $GITHUB_OUTPUT
+          echo "::endgroup::"
       - name: Create and push branch
         id: create-branch
         if: steps.check-changes.outputs.changes_detected == 'true'
         run: |
+          echo "::group::🌿 Creating and pushing branch"
           changed_dirs="${{ steps.check-changes.outputs.changed_dirs }}"
           release_stream="${{ inputs.release_stream }}"
           branch="update/$release_stream-$(date +%s)"
@@ -177,12 +186,14 @@ jobs:
           git push origin "$branch"
           echo "::notice::Branch pushed: $branch"
           echo "branch_name=$branch" >> $GITHUB_OUTPUT
+          echo "::endgroup::"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create pull request from ${{ steps.create-branch.outputs.branch_name }}
         id: create-pr
         if: steps.check-changes.outputs.changes_detected == 'true'
         run: |
+          echo "::group::📋 Creating pull request"
           branch="${{ steps.create-branch.outputs.branch_name }}"
           changed_dirs="${{ steps.check-changes.outputs.changed_dirs }}"
           release_stream="${{ inputs.release_stream }}"
@@ -192,23 +203,28 @@ jobs:
           echo "::notice::Pull request created: #$pr_number ($pr_url)"
           echo "PR created: $pr_url"
           echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
+          echo "::endgroup::"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Approve pull request - ${{ steps.create-pr.outputs.pr_number }}
         id: approve-pr
         if: steps.check-changes.outputs.changes_detected == 'true' && steps.load-config.outputs.auto_merge == 'true'
         run: |
+          echo "::group::✅ Approving pull request"
           pr_number="${{ steps.create-pr.outputs.pr_number }}"
           echo "::notice::Approving PR #$pr_number"
           gh pr review "$pr_number" --approve || { echo "::error::Failed to approve PR #$pr_number"; exit 1; }
+          echo "::endgroup::"
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
       - name: Auto-merge PR - ${{ steps.create-pr.outputs.pr_number }}
         id: auto-merge
         if: steps.check-changes.outputs.changes_detected == 'true' && steps.load-config.outputs.auto_merge == 'true'
         run: |
+          echo "::group::🔀 Auto-merging pull request"
           pr_number="${{ steps.create-pr.outputs.pr_number }}"
           echo "::notice::Auto-merging PR #$pr_number"
           gh pr merge "$pr_number" --squash --delete-branch || { echo "::error::Failed to merge PR #$pr_number"; exit 1; }
+          echo "::endgroup::"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
