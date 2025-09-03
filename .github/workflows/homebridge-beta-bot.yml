@@ -57,6 +57,7 @@ jobs:
       - name: Load config file - ${{ inputs.config_file }}
         id: load-config
         run: |
+          echo "::group::🤖 homebridge ${{ inputs.release_stream }} Bot - Update Dependencies"
           config="${{ inputs.config_file }}"
           config_abs="$(pwd)/$config"
           if [ ! -f "$config_abs" ]; then
@@ -210,5 +211,6 @@ jobs:
           pr_number="${{ steps.create-pr.outputs.pr_number }}"
           echo "::notice::Auto-merging PR #$pr_number"
           gh pr merge "$pr_number" --squash --delete-branch || { echo "::error::Failed to merge PR #$pr_number"; exit 1; }
+          echo "::endgroup::"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
