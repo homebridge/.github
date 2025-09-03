@@ -139,7 +139,7 @@ jobs:
               continue
             fi
             cd "$dir"
-            if git diff --quiet -- package.json package-lock.json; then
+            if git diff --quiet -- package.json ; then
               echo "No changes in $dir"
             else
               echo "Changes detected in $dir"
@@ -149,7 +149,7 @@ jobs:
               else
                 changed_dirs="$changed_dirs,$dir"
               fi
-              git add package.json package-lock.json
+              git add package.json 
             fi
             cd - > /dev/null
           done
