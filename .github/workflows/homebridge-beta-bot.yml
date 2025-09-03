@@ -1,4 +1,5 @@
-name: Update ${{ inputs.release_stream }} Dependencies - homebridge ${{ inputs.release_stream }} Bot
+name: Update Release Stream Dependencies - homebridge Beta Bot
+run-name: Update ${{ inputs.release_stream }} Dependencies - homebridge ${{ inputs.release_stream }} Bot
 # reusable bot to manage a package.json file for the latest release version
 #
 # Creates a pull request and merges
