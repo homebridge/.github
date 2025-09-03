@@ -111,7 +111,7 @@ jobs:
               pattern=$(jq -r ".directories[$i].packages[$j].pattern // null" "$config")
               if [ "$tag" != "null" ]; then
                 echo "::notice::Installing $pkg@$tag in $dir"
-                npm install "$pkg@$tag" || { echo "::error::Failed to install $pkg@$tag"; exit 1; }
+                npm install "$pkg@$tag" --save-exact || { echo "::error::Failed to install $pkg@$tag"; exit 1; }
               else
                 unescaped_pattern=$(echo "$pattern" | sed 's/\\\+/\\/g')
                 latest_version=$(npm view "$pkg" versions --json | jq -r ".[] | select(test(\"$unescaped_pattern\"))" | sort -V | tail -n 1)
@@ -120,7 +120,7 @@ jobs:
                   exit 1
                 fi
                 echo "::notice::Installing $pkg@$latest_version in $dir"
-                npm install "$pkg@$latest_version" || { echo "::error::Failed to install $pkg@$latest_version"; exit 1; }
+                npm install "$pkg@$latest_version" --save-exact || { echo "::error::Failed to install $pkg@$latest_version"; exit 1; }
               fi
             done
             cd - > /dev/null
