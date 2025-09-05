@@ -38,7 +38,7 @@ jobs:
 
   # Example using the new dependency bot workflow
   dependency-update:
-    uses: homebridge/.github/homebridge-dependency-bot.yml@latest
+    uses: homebridge/.github/sharedWorkflows/homebridge-dependency-bot.yml@latest
     with:
       config_file: '.github/homebridge-dependency-bot.json'
       release_stream: 'beta'
@@ -67,7 +67,7 @@ on:
 
 jobs:
   update-beta:
-    uses: homebridge/.github/homebridge-dependency-bot.yml@latest
+    uses: homebridge/.github/sharedWorkflows/homebridge-dependency-bot.yml@latest
     with:
       config_file: '.github/homebridge-dependency-bot.json'
       release_stream: 'beta'
