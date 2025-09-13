@@ -1,0 +1,78 @@
+name: Reusable Release Workflow
+
+on:
+  workflow_call:
+    inputs:
+      release-branch:
+        required: false
+        type: string
+        default: latest
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get latest commit message
+        id: commit
+        run: echo "message=$(git log -1 --pretty=%s)" >> $GITHUB_OUTPUT
+
+      - name: Determine version bump
+        id: bump
+        run: |
+          commit_msg="${{ steps.commit.outputs.message }}"
+          bump="patch"
+          if [[ "$commit_msg" == *"major:"* ]]; then
+            bump="major"
+          elif [[ "$commit_msg" == *"minor:"* ]]; then
+            bump="minor"
+          fi
+          echo "bump=$bump" >> $GITHUB_OUTPUT
+
+      - name: Bump version
+        id: version
+        uses: phips28/gh-action-bump-version@v10
+        with:
+          tag-prefix: "v"
+          default: patch
+          bump: ${{ steps.bump.outputs.bump }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Changelog
+        uses: conventional-changelog/standard-version@v9
+        run: |
+          npx standard-version --release-as ${{ steps.bump.outputs.bump }} --skip.tag
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json CHANGELOG.md
+          git commit -m "chore(release): v${{ steps.version.outputs.newTag }} [skip ci]" || echo "No changes to commit"
+          git tag ${{ steps.version.outputs.newTag }}
+
+      - name: Push changes
+        run: |
+          git push origin HEAD:${{ inputs.release-branch }} --tags
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.newTag }}
+          name: ${{ steps.version.outputs.newTag }}
+          body_path: CHANGELOG.md

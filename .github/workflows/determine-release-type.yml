@@ -1,0 +1,52 @@
+name: Determine Release Type & Version
+
+on:
+  workflow_call:
+    inputs:
+      ref_name:
+        required: true
+        type: string
+    outputs:
+      branch_name:
+        description: "Current branch name"
+        value: ${{ jobs.determine.outputs.branch_name }}
+      release_type:
+        description: "alpha, beta, or latest"
+        value: ${{ jobs.determine.outputs.release_type }}
+      is_esm:
+        description: "Whether this is an ESM package"
+        value: ${{ jobs.determine.outputs.is_esm }}
+
+jobs:
+  determine:
+    runs-on: ubuntu-latest
+    outputs:
+      branch_name: ${{ steps.set-vars.outputs.branch_name }}
+      release_type: ${{ steps.set-vars.outputs.release_type }}
+      is_esm: ${{ steps.detect-esm.outputs.is_esm }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Set branch name & release type
+      - name: Set release type
+        id: set-vars
+        run: |
+          echo "branch_name=${{ inputs.ref_name }}" >> $GITHUB_OUTPUT
+          BRANCH="${{ inputs.ref_name }}"
+          if [[ "$BRANCH" == alpha-* ]]; then
+            echo "release_type=alpha" >> $GITHUB_OUTPUT
+          elif [[ "$BRANCH" == beta-* ]]; then
+            echo "release_type=beta" >> $GITHUB_OUTPUT
+          else
+            echo "release_type=latest" >> $GITHUB_OUTPUT
+          fi
+
+      # Detect ESM
+      - name: Detect ESM
+        id: detect-esm
+        run: |
+          if grep -q '"type": "module"' package.json; then
+            echo "is_esm=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_esm=false" >> $GITHUB_OUTPUT
+          fi

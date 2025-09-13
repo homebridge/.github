@@ -1,0 +1,72 @@
+name: Promote Branch
+
+on:
+  workflow_call:
+    inputs:
+      branch_name:
+        required: true
+        type: string
+      release_type:
+        required: true
+        type: string
+      is_esm:
+        required: true
+        type: boolean
+    secrets:
+      NPM_TOKEN:
+        required: true
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2️⃣ Determine the current version using the appropriate script
+      - name: Determine version
+        id: set_version
+        run: |
+          BRANCH="${{ inputs.branch_name }}"
+          if [ "${{ inputs.is_esm }}" == "true" ]; then
+            NODE_SCRIPT=".github/scripts/npm-version-script-esm-auto.js"
+          else
+            NODE_SCRIPT=".github/scripts/npm-version-script-auto.js"
+          fi
+
+          echo "Running $NODE_SCRIPT for branch $BRANCH and release type ${{ inputs.release_type }}"
+          node $NODE_SCRIPT "refs/heads/$BRANCH" "${{ inputs.release_type }}"
+
+          VERSION=$(node -p "require('./package.json').version")
+          echo "release_version=$VERSION" >> $GITHUB_OUTPUT
+
+      # 3️⃣ Determine target branch for promotion
+      - name: Determine target branch
+        id: target
+        run: |
+          src="${{ inputs.branch_name }}"
+          if [[ "$src" == alpha-* ]]; then
+            if git ls-remote --exit-code origin beta >/dev/null 2>&1; then
+              echo "branch=beta" >> $GITHUB_OUTPUT
+            else
+              echo "branch=latest" >> $GITHUB_OUTPUT
+            fi
+          elif [[ "$src" == beta-* ]]; then
+            echo "branch=latest" >> $GITHUB_OUTPUT
+          else
+            echo "branch=skip" >> $GITHUB_OUTPUT
+          fi
+
+      # 4️⃣ Create the promotion PR
+      - name: Promote via PR
+        if: ${{ steps.target.outputs.branch != 'skip' }}
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: ${{ steps.target.outputs.branch }}
+          branch: ${{ inputs.branch_name }}
+          title: "Promote ${{ inputs.branch_name }} → ${{ steps.target.outputs.branch }}"
+          body: |
+            Automated promotion of `${{ inputs.branch_name }}` (version ${{ steps.set_version.outputs.release_version }}) 
+            into `${{ steps.target.outputs.branch }}`.
