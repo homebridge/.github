@@ -1,0 +1,119 @@
+name: Update Version & Changelog
+
+on:
+  workflow_call:
+    inputs:
+      release_type:
+        required: true
+        type: string
+      is_esm:
+        required: true
+        type: boolean
+    outputs:
+      version:
+        description: 'The new version number'
+        value: ${{ jobs.update.outputs.version }}
+    secrets:
+      NPM_TOKEN:
+        required: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.set_version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for changelog
+
+      # Step 0: Run version script (CJS or ESM)
+      - name: Set Version
+        id: set_version
+        run: |
+          BRANCH_NAME="${GITHUB_REF_NAME}"
+          TAG="${{ inputs.release_type }}"
+
+          if [ "${{ inputs.is_esm }}" == "true" ]; then
+            # Always use the ESM -auto script (requested)
+            VERSION_SCRIPT=".github/scripts/npm-version-script-esm-auto.js"
+          else
+            # Always use the CommonJS -auto script (requested)
+            VERSION_SCRIPT=".github/scripts/npm-version-script-auto.js"
+          fi
+
+          # If the requested -auto script is missing in the caller repo, fetch it from the canonical homebridge/.github repo
+          if [ ! -f "$VERSION_SCRIPT" ]; then
+            echo "$VERSION_SCRIPT not found in repo, attempting to download from homebridge/.github"
+            RAW_BASE_URL="https://raw.githubusercontent.com/homebridge/.github/latest/.github"
+            echo "Downloading $RAW_BASE_URL/$VERSION_SCRIPT"
+            mkdir -p $(dirname "$VERSION_SCRIPT")
+            if ! curl -fsSL "$RAW_BASE_URL/$VERSION_SCRIPT" -o "$VERSION_SCRIPT"; then
+              echo "Failed to download $VERSION_SCRIPT from $RAW_BASE_URL" >&2
+              exit 1
+            fi
+            chmod +x "$VERSION_SCRIPT" || true
+          fi
+
+          echo "Running $VERSION_SCRIPT for branch $BRANCH_NAME and tag $TAG"
+          node $VERSION_SCRIPT "refs/heads/$BRANCH_NAME" "$TAG"
+
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Final version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      # Install conventional-changelog for "latest"
+      - name: Install Conventional Changelog CLI
+        if: ${{ inputs.release_type == 'latest' }}
+        run: npm install -g conventional-changelog-cli
+
+      # Check if recent commits follow Conventional Commits
+      - name: Check for Conventional Commits
+        if: ${{ inputs.release_type == 'latest' }}
+        id: check_commits
+        run: |
+          if git log --oneline -10 | grep -E "^[0-9a-f]+ (feat|fix|chore|docs|style|refactor|test|build|ci|perf)(\(.+\))?:" > /dev/null; then
+            echo "conventional_commits=true" >> $GITHUB_OUTPUT
+          else
+            echo "conventional_commits=false" >> $GITHUB_OUTPUT
+          fi
+
+      # Generate new changelog entry
+      - name: Generate Changelog
+        if: ${{ inputs.release_type == 'latest' }}
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 || echo "")
+          RELEASE_DATE=$(date +%Y-%m-%d)
+          CURRENT_VERSION="${{ steps.set_version.outputs.version }}"
+
+          if [ "${{ steps.check_commits.outputs.conventional_commits }}" == "true" ]; then
+            conventional-changelog -p angular -i CHANGELOG.tmp -s -r 0 || true
+          else
+            CHANGELOG_TMP="## [${CURRENT_VERSION}](https://github.com/${GITHUB_REPOSITORY}/releases/tag/v${CURRENT_VERSION}) (${RELEASE_DATE})\n\n### What's Changed"
+            COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s ([%h](https://github.com/${GITHUB_REPOSITORY}/commit/%H))" --no-merges --invert-grep --grep "Revert")
+            if [ -n "$COMMITS" ]; then
+              CHANGELOG_TMP="${CHANGELOG_TMP}\n${COMMITS}\n\n**Full Changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${LAST_TAG}...v${CURRENT_VERSION}"
+            else
+              CHANGELOG_TMP="${CHANGELOG_TMP}\n- No notable changes\n\n**Full Changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${LAST_TAG}...v${CURRENT_VERSION}"
+            fi
+            echo -e "$CHANGELOG_TMP" > CHANGELOG.tmp
+          fi
+
+      # Prepend changelog entry (no header expected anymore)
+      - name: Prepend to Changelog
+        if: ${{ inputs.release_type == 'latest' }}
+        run: |
+          if [ -s CHANGELOG.tmp ]; then
+            (cat CHANGELOG.tmp; echo ""; cat CHANGELOG.md) > CHANGELOG.new
+            mv CHANGELOG.new CHANGELOG.md
+            rm CHANGELOG.tmp
+          fi
+
+      # Commit updated changelog and package versions
+      - name: Commit Changelog & Version
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add CHANGELOG.md package.json package-lock.json
+          git commit -m "chore(release): v${{ steps.set_version.outputs.version }} [skip ci]" || echo "No changes to commit"
+          git push --force

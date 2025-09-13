@@ -1,0 +1,35 @@
+name: Create Failure Issue
+
+on:
+  workflow_call:
+    inputs:
+      workflow_name:
+        required: true
+        type: string
+      job_name:
+        required: true
+        type: string
+      run_url:
+        required: true
+        type: string
+
+jobs:
+  create-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare Failure Content
+        run: |
+          echo "Workflow: ${{ inputs.workflow_name }}" > failure-logs.md
+          echo "Job: ${{ inputs.job_name }}" >> failure-logs.md
+          echo "Run URL: ${{ inputs.run_url }}" >> failure-logs.md
+          echo "" >> failure-logs.md
+          echo "This workflow failed. Please investigate." >> failure-logs.md
+          echo "Reminder that this workflow may use reusable workflows. So if it is an issue with a reusable workflow, please check the implementation there as well and recommend any changes." >> failure-logs.md
+
+      - name: Create GitHub Issue
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: "Workflow Failure: ${{ inputs.workflow_name }}"
+          content-filepath: failure-logs.md
+          assignees: copilot
+          labels: bug, workflow-failure
