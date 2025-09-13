@@ -1,0 +1,78 @@
+name: 'Sync GitHub Release (reusable)'
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Release version (no tag prefix, e.g. 1.2.3)'
+        required: true
+        type: string
+      changelog_path:
+        description: 'Path to the changelog file'
+        required: false
+        default: 'CHANGELOG.md'
+        type: string
+      tag_prefix:
+        description: 'Tag prefix to use (default: v)'
+        required: false
+        default: 'v'
+        type: string
+    secrets:
+      repo_token:
+        description: 'Repository token (pass caller GITHUB_TOKEN here)'
+        required: true
+
+jobs:
+  sync:
+    name: Sync GitHub Release from changelog
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract release notes for version
+        id: extract
+        run: |
+          set -euo pipefail
+          VERSION="${{ inputs.version }}"
+          CHANGELOG_PATH="${{ inputs.changelog_path }}"
+          TAG_PREFIX="${{ inputs.tag_prefix }}"
+          # Find the first top-level heading (##) that contains the version
+          awk -v ver="$VERSION" 'BEGIN{found=0} /^## /{if(found) exit} $0 ~ ver {found=1; print; next} found{print}' "$CHANGELOG_PATH" > release_notes.md || true
+          # Fallback to full changelog if nothing specific found
+          if [ ! -s release_notes.md ]; then
+            echo "No changelog section found for $VERSION; using full $CHANGELOG_PATH" >&2
+            cat "$CHANGELOG_PATH" > release_notes.md
+          fi
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          cat release_notes.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create or update GitHub Release (REST API)
+        env:
+          GITHUB_TOKEN: ${{ secrets.repo_token }}
+          TAG_NAME: "${{ inputs.tag_prefix }}${{ inputs.version }}"
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          API_URL="https://api.github.com/repos/$REPO"
+          NOTES_FILE=release_notes.md
+          BODY=$(jq -Rs '.' "$NOTES_FILE")
+
+          # Try to get existing release by tag
+          resp=$(curl -sS -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$API_URL/releases/tags/$TAG_NAME" -w "\n%{http_code}" || true)
+          http_code=$(printf '%s' "$resp" | tail -n1)
+          body_json=$(printf '%s' "$resp" | sed '$d')
+
+          if [ "$http_code" = "200" ]; then
+            release_id=$(printf '%s' "$body_json" | jq -r '.id')
+            echo "Updating release $TAG_NAME (id=$release_id)"
+            update_payload=$(jq -n --arg body "$(cat "$NOTES_FILE")" '{body: $body}')
+            curl -sS -X PATCH -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" -H "Content-Type: application/json" -d "$update_payload" "$API_URL/releases/$release_id"
+          else
+            echo "Creating release $TAG_NAME"
+            create_payload=$(jq -n --arg tag_name "$TAG_NAME" --arg name "$TAG_NAME" --arg body "$(cat "$NOTES_FILE")" '{tag_name: $tag_name, name: $name, body: $body, draft: false, prerelease: false}')
+            curl -sS -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" -H "Content-Type: application/json" -d "$create_payload" "$API_URL/releases"
+          fi

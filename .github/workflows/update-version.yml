@@ -1,0 +1,177 @@
+name: Update Version & Changelog
+
+on:
+  workflow_call:
+    inputs:
+      release_type:
+        required: true
+        type: string
+      is_esm:
+        required: true
+        type: boolean
+    outputs:
+      version:
+        description: 'The new version number'
+        value: ${{ jobs.update.outputs.version }}
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.set_version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for changelog
+
+      # Adjust version for ESM
+      - name: Adjust version (ESM)
+        if: ${{ inputs.is_esm }}
+        run: |
+          mkdir -p .github/scripts
+          wget -q https://raw.githubusercontent.com/homebridge/.github/latest/.github/scripts/npm-version-script-esm-auto.js -O .github/scripts/npm-version-script-esm-auto.js
+          chmod +x .github/scripts/npm-version-script-esm-auto.js || true
+          node .github/scripts/npm-version-script-esm-auto.js ${{ github.ref }} ${{ inputs.release_type }}
+
+      # Adjust version for CommonJS
+      - name: Adjust version (CJS)
+        if: ${{ !inputs.is_esm }}
+        run: |
+          mkdir -p .github/scripts
+          wget -q https://raw.githubusercontent.com/homebridge/.github/latest/.github/scripts/npm-version-script-auto.js -O .github/scripts/npm-version-script-auto.js
+          chmod +x .github/scripts/npm-version-script-auto.js || true
+          node .github/scripts/npm-version-script-auto.js ${{ github.ref }} ${{ inputs.release_type }}
+
+      # Finalize and export version
+      - name: Export Version
+        id: set_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Final version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      # Install conventional-changelog for "latest"
+      - name: Install Conventional Changelog CLI
+        if: ${{ inputs.release_type == 'latest' }}
+        run: npm install -g conventional-changelog-cli
+
+      # Check if recent commits follow Conventional Commits
+      - name: Check for Conventional Commits
+        if: ${{ inputs.release_type == 'latest' }}
+        id: check_commits
+        run: |
+          if git log --oneline -10 | grep -E "^[0-9a-f]+ (feat|fix|chore|docs|style|refactor|test|build|ci|perf)(\(.+\))?:" > /dev/null; then
+            echo "conventional_commits=true" >> $GITHUB_OUTPUT
+          else
+            echo "conventional_commits=false" >> $GITHUB_OUTPUT
+          fi
+
+      # Generate new changelog entry
+      #
+      # This step creates a temporary changelog entry file `CHANGELOG.tmp`.
+      # - If recent commits follow Conventional Commits, we delegate to
+      #   `conventional-changelog` to generate a structured entry.
+      # - Otherwise we build a compact markdown entry listing commits since
+      #   the last tag. The resulting entry is written to `CHANGELOG.tmp`.
+      #
+      # The entry will later be inserted into the project's `CHANGELOG.md`.
+      - name: Generate Changelog
+        if: ${{ inputs.release_type == 'latest' }}
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 || echo "")
+          RELEASE_DATE=$(date +%Y-%m-%d)
+          CURRENT_VERSION="${{ steps.set_version.outputs.version }}"
+
+          if [ "${{ steps.check_commits.outputs.conventional_commits }}" == "true" ]; then
+            conventional-changelog -p angular -i CHANGELOG.tmp -s -r 0 || true
+          else
+            # Build a changelog styled like:
+            # ## [2.3.4](.../releases/tag/v2.3.4) (YYYY-MM-DD)
+            # ## What's Changed
+            # * Commit message by @author in PR link
+            CHANGELOG_TMP_HEADER="## [${CURRENT_VERSION}](https://github.com/${GITHUB_REPOSITORY}/releases/tag/v${CURRENT_VERSION}) (${RELEASE_DATE})\n\n## What's Changed"
+
+            # Generate commit lines as bullets. Attempt to detect PR number from commit message (e.g. "(#123)")
+            COMMITS=""
+            while IFS= read -r line; do
+              # Extract commit hash, subject, and author
+              HASH=$(echo "$line" | awk '{print $1}')
+              SUBJECT=$(echo "$line" | cut -d' ' -f2- | sed -E 's/\([#]([0-9]+)\)$//')
+              PR=$(echo "$line" | grep -oE '\(#([0-9]+)\)' | tr -d '()' | sed 's/#//')
+              AUTHOR=$(git show -s --format='%an' "$HASH")
+
+              if [ -n "$PR" ]; then
+                PR_LINK="https://github.com/${GITHUB_REPOSITORY}/pull/${PR}"
+                BULLET="* ${SUBJECT} by @${AUTHOR} in ${PR_LINK}"
+              else
+                COMMIT_LINK="https://github.com/${GITHUB_REPOSITORY}/commit/${HASH}"
+                BULLET="* ${SUBJECT} by @${AUTHOR} in ${COMMIT_LINK}"
+              fi
+
+              COMMITS+="${BULLET}\n"
+            done < <(git log ${LAST_TAG}..HEAD --pretty=format:"%h %s" --no-merges --invert-grep --grep "Revert")
+
+            if [ -n "$COMMITS" ]; then
+              CHANGELOG_TMP="${CHANGELOG_TMP_HEADER}\n${COMMITS}\n**Full Changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${LAST_TAG}...v${CURRENT_VERSION}"
+            else
+              CHANGELOG_TMP="${CHANGELOG_TMP_HEADER}\n* No notable changes\n\n**Full Changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${LAST_TAG}...v${CURRENT_VERSION}"
+            fi
+
+            echo -e "$CHANGELOG_TMP" > CHANGELOG.tmp
+          fi
+
+      # Insert changelog entry after the changelog header (keeps header intact)
+      #
+      # This step tries to keep the human-readable changelog header in place
+      # and insert the generated entry after that header. The logic is:
+      # 1. If `CHANGELOG.tmp` is empty or missing, do nothing.
+      # 2. Attempt to insert the entry after the section that contains
+      #    the phrase `All notable changes` (this mirrors `update-beta-version.yml`).
+      # 3. If no insertion point is found, fallback to prepending the entry to
+      #    the top of `CHANGELOG.md` so the changelog still receives an update.
+      #
+      # This ensures consistent formatting while being tolerant of slightly
+      # different changelog header text across repositories.
+      - name: Insert Changelog Entry
+        if: ${{ inputs.release_type == 'latest' }}
+        run: |
+          if [ ! -s CHANGELOG.tmp ]; then
+            echo "No changelog entry generated; skipping insertion."
+            exit 0
+          fi
+
+          ENTRY=$(cat CHANGELOG.tmp)
+
+          # Use awk to insert the entry after the human-readable header section
+          awk -v entry="$ENTRY" '
+            BEGIN { inserted=0 }
+            /^# Changelog/ {
+              print;
+              next
+            }
+            !inserted && /^All notable changes/ {
+              print;
+              print "";
+              print entry;
+              inserted=1;
+              next
+            }
+            { print }
+          ' CHANGELOG.md > CHANGELOG.tmp.new && mv CHANGELOG.tmp.new CHANGELOG.md || true
+
+          # If awk didn't find the insertion point, prepend as a fallback
+          if ! grep -qF "$ENTRY" CHANGELOG.md; then
+            echo "Insertion point not found; prepending entry as fallback"
+            (echo "$ENTRY"; echo ""; cat CHANGELOG.md) > CHANGELOG.new && mv CHANGELOG.new CHANGELOG.md
+          fi
+
+          rm -f CHANGELOG.tmp || true
+
+      # Commit updated changelog and package versions
+      - name: Commit Changelog & Version
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add CHANGELOG.md package.json package-lock.json
+          git commit -m "chore(release): v${{ steps.set_version.outputs.version }} [skip ci]" || echo "No changes to commit"
+          git push --force
