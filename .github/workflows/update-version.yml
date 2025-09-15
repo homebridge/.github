@@ -45,7 +45,7 @@ jobs:
           # If the requested -auto script is missing in the caller repo, fetch it from the canonical homebridge/.github repo
           if [ ! -f "$VERSION_SCRIPT" ]; then
             echo "$VERSION_SCRIPT not found in repo, attempting to download from homebridge/.github"
-            RAW_BASE_URL="https://raw.githubusercontent.com/homebridge/.github/latest/.github"
+            RAW_BASE_URL="https://raw.githubusercontent.com/homebridge/.github/latest"
             echo "Downloading $RAW_BASE_URL/$VERSION_SCRIPT"
             mkdir -p $(dirname "$VERSION_SCRIPT")
             if ! curl -fsSL "$RAW_BASE_URL/$VERSION_SCRIPT" -o "$VERSION_SCRIPT"; then
