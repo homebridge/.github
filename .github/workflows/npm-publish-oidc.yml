@@ -13,7 +13,7 @@ on:
         required: false
         type: string
       npm_version_command:
-        description: 'If supplied, the `npm version` command is run before publishing with the provided string as the third argument. E.g. `patch` to run npm run patch before publishing.'
+        description: 'If supplied, the `npm version` command is run before publishing with the provided string as the third argument (for example, `patch` to run `npm version patch` and increment the patch version before publishing).'
         required: false
         type: string
       pre_id:
