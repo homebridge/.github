@@ -1,0 +1,95 @@
+name: NPM Publish (OIDC)
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        description: Defines the node version setup to run the publish job.
+        default: 22
+        required: false
+        type: number
+      tag:
+        description: Defines the tag name used to tag the published version on npm.
+        required: false
+        type: string
+      npm_version_command:
+        description: 'If supplied, the `npm version` command is run before publishing with the provided string as the third argument. E.g. `patch` to run npm run patch before publishing.'
+        required: false
+        type: string
+      pre_id:
+        description: 'If `npm_version_command` is supplied, this input can be supplied to pass a value to the `--preid` argument of the `npm version` command.'
+        default: ''
+        required: false
+        type: string
+      dynamically_adjust_version:
+        description: 'If enabled, the job executes the `npm-version-script.js` script. This is used to automatically query the latest version from the npm registry.'
+        default: false
+        required: false
+        type: boolean
+      install_cmd:
+        description: Defines the install command to be run. Defaults to `npm ci`.
+        default: npm ci
+        required: false
+        type: string
+    secrets:
+      NPM_READ_TOKEN:
+        description: Optional read-only npm token to use for installing private dependencies (not used for publishing).
+        required: false
+    outputs:
+      NPM_VERSION:
+        value: ${{ jobs.publish_npm.outputs.NPM_VERSION }}
+
+jobs:
+  publish_npm:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      - name: install
+        run: ${{ inputs.install_cmd }}
+        env:
+          # Optional read-only token for installing private dependencies. If not provided, this will be empty and install will run unauthenticated.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_READ_TOKEN }}
+
+      - name: Fetch Adjust version script
+        if: ${{ inputs.dynamically_adjust_version }}
+        run: wget -q https://raw.githubusercontent.com/homebridge/.github/latest/.github/npm-version-script.js
+        working-directory: .github
+
+      - name: Adjust version
+        if: ${{ inputs.dynamically_adjust_version }}
+        run: node .github/npm-version-script.js ${{ github.ref }} ${{ inputs.tag }}
+
+      - name: npm version (with git commit)
+        if: ${{ inputs.npm_version_command != null && inputs.dynamically_adjust_version == false }}
+        run: npm version ${{ inputs.npm_version_command }} --preid=${{ inputs.pre_id }}
+
+      - name: npm version (without git commit)
+        if: ${{ inputs.npm_version_command != null && inputs.dynamically_adjust_version }}
+        run: npm version ${{ inputs.npm_version_command }} --preid=${{ inputs.pre_id }} --no-git-tag-version
+
+      - name: publish (without tag) using OIDC
+        if: ${{ inputs.tag == null }}
+        run: npm publish --access public --provenance
+
+      - name: publish (with tag) using OIDC
+        if: ${{ inputs.tag != null }}
+        run: npm publish --access public --tag=${{ inputs.tag }} --provenance
+
+      - name: Return NPM Package Version
+        id: package-version
+        uses: martinbeentjes/npm-get-version-action@v1.3.1
+
+      - name: Published
+        run: echo "::notice::Published on NPM - ${{ steps.package-version.outputs.current-version }}"
+
+    outputs:
+      NPM_VERSION: ${{ steps.package-version.outputs.current-version }}
