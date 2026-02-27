@@ -31,10 +31,6 @@ on:
         default: npm ci
         required: false
         type: string
-    secrets:
-      NPM_READ_TOKEN:
-        description: Optional read-only npm token to use for installing private dependencies (not used for publishing).
-        required: false
     outputs:
       NPM_VERSION:
         value: ${{ jobs.publish_npm.outputs.NPM_VERSION }}
@@ -55,9 +51,6 @@ jobs:
 
       - name: install
         run: ${{ inputs.install_cmd }}
-        env:
-          # Optional read-only token for installing private dependencies. If not provided, this will be empty and install will run unauthenticated.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_READ_TOKEN }}
 
       - name: Fetch Adjust version script
         if: ${{ inputs.dynamically_adjust_version }}
