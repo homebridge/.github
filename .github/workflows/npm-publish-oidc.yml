@@ -46,8 +46,8 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ inputs.node_version }}
           registry-url: 'https://registry.npmjs.org'
@@ -86,7 +86,8 @@ jobs:
 
       - name: Return NPM Package Version
         id: package-version
-        uses: martinbeentjes/npm-get-version-action@v1.3.1
+        # Use the major tag so small fixes are picked up automatically
+        uses: martinbeentjes/npm-get-version-action@v1
 
       - name: Published
         run: echo "::notice::Published on NPM - ${{ steps.package-version.outputs.current-version }}"
