@@ -5,9 +5,9 @@ on:
     inputs:
       node_version:
         description: Defines the node version setup to run the publish job.
-        default: 22
+        default: latest
         required: false
-        type: number
+        type: string
       tag:
         description: Defines the tag name used to tag the published version on npm.
         required: false
