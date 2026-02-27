@@ -79,10 +79,16 @@ jobs:
       - name: publish (without tag) using OIDC
         if: ${{ inputs.tag == null }}
         run: npm publish --access public --provenance
+        env:
+          # Ensure any long-lived token from repo/org secrets does not override OIDC
+          NODE_AUTH_TOKEN: ''
 
       - name: publish (with tag) using OIDC
         if: ${{ inputs.tag != null }}
         run: npm publish --access public --tag=${{ inputs.tag }} --provenance
+        env:
+          # Ensure any long-lived token from repo/org secrets does not override OIDC
+          NODE_AUTH_TOKEN: ''
 
       - name: Return NPM Package Version
         id: package-version
