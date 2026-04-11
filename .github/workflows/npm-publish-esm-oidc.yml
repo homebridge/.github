@@ -1,19 +1,19 @@
-name: NPM Publish ESM
+name: NPM Publish ESM (OIDC)
 
 on:
   workflow_call:
     inputs:
       node_version:
         description: Defines the node version setup to run the publish job.
-        default: 22
+        default: latest
         required: false
-        type: number
+        type: string
       tag:
         description: Defines the tag name used to tag the published version on npm.
         required: false
         type: string
       npm_version_command:
-        description: 'If supplied, the `npm version` command is run before publishing with the provided string as the third argument. E.g. `patch` to run npm run patch before publishing.'
+        description: 'If supplied, the `npm version` command is run before publishing with the provided string as the third argument (for example, `patch` to run `npm version patch` and increment the patch version before publishing).'
         required: false
         type: string
       pre_id:
@@ -31,10 +31,6 @@ on:
         default: npm ci
         required: false
         type: string
-    secrets:
-      npm_auth_token:
-        description: The npm access token used to publish the package
-        required: true
     outputs:
       NPM_VERSION:
         value: ${{ jobs.publish_npm.outputs.NPM_VERSION }}
@@ -46,8 +42,8 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ inputs.node_version }}
           registry-url: 'https://registry.npmjs.org'
@@ -73,20 +69,17 @@ jobs:
         if: ${{ inputs.npm_version_command != null && inputs.dynamically_adjust_version }}
         run: npm version ${{ inputs.npm_version_command }} --preid=${{ inputs.pre_id }} --no-git-tag-version
 
-      - name: publish (without tag)
+      - name: publish (without tag) using OIDC
         if: ${{ inputs.tag == null }}
         run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm_auth_token }}
 
-      - name: publish (with tag)
+      - name: publish (with tag) using OIDC
         if: ${{ inputs.tag != null }}
         run: npm publish --access public --tag=${{ inputs.tag }} --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm_auth_token }}
 
       - name: Return NPM Package Version
         id: package-version
+        # Pin to explicit version to avoid floating major tag
         uses: martinbeentjes/npm-get-version-action@v1.3.1
 
       - name: Published
