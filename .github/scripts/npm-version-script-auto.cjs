@@ -73,11 +73,10 @@ const packageJSON = JSON.parse(fs.readFileSync('package.json', 'utf8'))
 
 const refArgument = process.argv[2]
 const tagArgument = process.argv[3] || 'latest'
-const prLabel = process.argv[4] || null // optional PR label: major, minor, patch
 
 if (!refArgument) {
 	console.error('ref argument is missing')
-	console.error('Usage: npm-version-script-auto.js <ref> [tag] [pr_label]')
+	console.error('Usage: npm-version-script-auto.cjs <ref> [tag]')
 	process.exit(1)
 }
 
@@ -136,13 +135,13 @@ function desiredTargetVersion(ref) {
 	throw new Error(`Malformed branch name for ref: ${ref}. Must be beta-x.x.x, alpha-x.x.x, or 'latest'`)
 }
 
-function bumpVersion(baseVersion, prLabel) {
-	const label = (prLabel || 'patch').toLowerCase()
+function bumpVersion(baseVersion, level) {
+	const normalizedLevel = (level || 'patch').toLowerCase()
 	if (!semver.valid(baseVersion)) {
 		throw new Error(`Invalid base version passed to bumpVersion: ${baseVersion}`)
 	}
 
-	switch (label) {
+	switch (normalizedLevel) {
 		case 'major':
 			return semver.inc(baseVersion, 'major')
 		case 'minor':
@@ -157,19 +156,14 @@ const baseVersion = desiredTargetVersion(refArgument)
 let publishTag = baseVersion
 
 if (refArgument.includes('latest')) {
-	if (prLabel) {
-		// For latest branch, bump according to PR label
-		publishTag = bumpVersion(baseVersion, prLabel)
+	// For latest branch, determine next version based on npm and bump patch.
+	const latestPublishedStable = getLatestStableVersionFromNpm()
+	if (latestPublishedStable) {
+		console.warn(`Latest published stable version is ${latestPublishedStable}; bumping patch`)
+		publishTag = bumpVersion(latestPublishedStable, 'patch')
 	} else {
-		// For latest branch with no PR label, determine next version based on npm
-		const latestPublishedStable = getLatestStableVersionFromNpm()
-		if (latestPublishedStable) {
-			console.warn(`Latest published stable version is ${latestPublishedStable}; bumping patch`)
-			publishTag = bumpVersion(latestPublishedStable, 'patch')
-		} else {
-			console.warn('No published stable versions found; bumping package.json version patch')
-			publishTag = bumpVersion(baseVersion, 'patch')
-		}
+		console.warn('No published stable versions found; bumping package.json version patch')
+		publishTag = bumpVersion(baseVersion, 'patch')
 	}
 } else {
 	// For alpha/beta, query npm for latest
