@@ -46,13 +46,13 @@ jobs:
 
 
       - name: Download package.json and lockfile artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: package-artifacts
           path: .
 
       - name: Download version artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: version
           path: .
@@ -82,7 +82,7 @@ jobs:
           echo "[DEBUG] Contents of package-lock.json:"
           cat package-lock.json || echo "package-lock.json not found"
 
-      - name: Download ensure-publishable-version script  
+      - name: Download ensure-publishable-version script
         run: |
           mkdir -p .github/scripts
           wget -q https://raw.githubusercontent.com/homebridge/.github/latest/.github/scripts/ensure-publishable-version.sh -O .github/scripts/ensure-publishable-version.sh

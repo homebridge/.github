@@ -27,7 +27,7 @@ jobs:
           echo "Reminder that this workflow may use reusable workflows. So if it is an issue with a reusable workflow, please check the implementation there as well and recommend any changes." >> failure-logs.md
 
       - name: Create GitHub Issue
-        uses: peter-evans/create-issue-from-file@v5
+        uses: peter-evans/create-issue-from-file@v6
         with:
           title: "Workflow Failure: ${{ inputs.workflow_name }}"
           content-filepath: failure-logs.md
