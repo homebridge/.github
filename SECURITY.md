@@ -12,7 +12,7 @@ This document outlines security procedures and general policies for the Homebrid
 
 We want to ensure that all Homebridge projects are secure for everyone. If you've discovered a security vulnerability, we appreciate your help in disclosing it to us in a [responsible manner][link-responsible-disclosure].
 
-Publicly disclosing a vulnerability can put the entire community at risk. Please do not open a public GitHub issue. Instead, email the security team at [mail](mailto:bwp91@icloud.com,northern.man1@gmail.com,beckersmarthome@icloud.com,homebridge-security@andi-bauer.com,dev@oz.nu?subject=%5BHB-SECURITY%5D). Please include the following in your report:
+Publicly disclosing a vulnerability can put the entire community at risk. Please do not open a public GitHub issue. Instead, email the security team at [mail](mailto:bwp91@icloud.com,northern.man1@gmail.com,homebridge-security@andi-bauer.com,dev@oz.nu?subject=%5BHB-SECURITY%5D). Please include the following in your report:
 
 - A description of the vulnerability and its potential impact
 - The affected project(s) and version(s)
