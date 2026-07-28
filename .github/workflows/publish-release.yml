@@ -65,11 +65,11 @@ jobs:
 
       - name: Debug ensure-publishable-version.sh presence
         run: |
-          echo "Listing .github/scripts:"
-          mkdir -p .github/scripts
-          ls -l .github/scripts
+          echo "Listing $RUNNER_TEMP/release-scripts:"
+          mkdir -p "$RUNNER_TEMP/release-scripts"
+          ls -l "$RUNNER_TEMP/release-scripts"
           echo "First 20 lines of ensure-publishable-version.sh:"
-          head -20 .github/scripts/ensure-publishable-version.sh || echo "Script not found"
+          head -20 "$RUNNER_TEMP/release-scripts/ensure-publishable-version.sh" || echo "Script not found"
           echo "Shell version:"
           bash --version
 
@@ -84,9 +84,9 @@ jobs:
 
       - name: Download ensure-publishable-version script
         run: |
-          mkdir -p .github/scripts
-          wget -q https://raw.githubusercontent.com/homebridge/.github/latest/.github/scripts/ensure-publishable-version.sh -O .github/scripts/ensure-publishable-version.sh
-          chmod +x .github/scripts/ensure-publishable-version.sh || true
+          mkdir -p "$RUNNER_TEMP/release-scripts"
+          wget -q https://raw.githubusercontent.com/homebridge/.github/latest/.github/scripts/ensure-publishable-version.sh -O "$RUNNER_TEMP/release-scripts/ensure-publishable-version.sh"
+          chmod +x "$RUNNER_TEMP/release-scripts/ensure-publishable-version.sh" || true
 
       - name: Ensure version consistency
         id: ensure-version
@@ -115,7 +115,7 @@ jobs:
         id: ensure-publishable-version
         run: |
           set -x
-          bash .github/scripts/ensure-publishable-version.sh "${{ inputs.release_type }}" "${{ inputs.max_attempts }}"
+          bash "$RUNNER_TEMP/release-scripts/ensure-publishable-version.sh" "${{ inputs.release_type }}" "${{ inputs.max_attempts }}"
 
       - name: Log final package.json and selected tag
         run: |
@@ -132,6 +132,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # Helper scripts are fetched into $RUNNER_TEMP rather than into the checkout.
+  # This job runs `npm publish`, which fires the consuming repo's
+  # `prepublishOnly` hook - typically `npm run lint && npm run build`. Anything
+  # written into the working tree first is therefore linted as if it were the
+  # repo's own source, and is also a candidate for the published tarball.
   publish:
     runs-on: ubuntu-latest
     needs: [create_github_release]
@@ -152,13 +157,13 @@ jobs:
       - name: Download resolve-version-bump script
         if: ${{ inputs.release_type == 'latest' && inputs.version_override == '' }}
         run: |
-          mkdir -p .github/scripts
+          mkdir -p "$RUNNER_TEMP/release-scripts"
           SCRIPT_NAME="resolve-version-bump.cjs"
           if [ "${{ inputs.is_esm }}" = "true" ]; then
             SCRIPT_NAME="resolve-version-bump-esm.js"
           fi
-          wget -q "https://raw.githubusercontent.com/homebridge/.github/latest/.github/scripts/${SCRIPT_NAME}" -O ".github/scripts/${SCRIPT_NAME}"
-          chmod +x ".github/scripts/${SCRIPT_NAME}" || true
+          wget -q "https://raw.githubusercontent.com/homebridge/.github/latest/.github/scripts/${SCRIPT_NAME}" -O "$RUNNER_TEMP/release-scripts/${SCRIPT_NAME}"
+          chmod +x "$RUNNER_TEMP/release-scripts/${SCRIPT_NAME}" || true
 
       # Resolve how latest releases should bump version.
       # Priority: explicit workflow input > PR labels on the merged PR > patch.
@@ -172,7 +177,7 @@ jobs:
           if [ "${{ inputs.is_esm }}" = "true" ]; then
             SCRIPT_NAME="resolve-version-bump-esm.js"
           fi
-          node ".github/scripts/${SCRIPT_NAME}" "${{ inputs.version_bump }}"
+          node "$RUNNER_TEMP/release-scripts/${SCRIPT_NAME}" "${{ inputs.version_bump }}"
 
       # For major/minor on latest, compute explicit next version in workflow.
       # Patch remains handled by npm-version-script-*-auto.js.
@@ -180,11 +185,11 @@ jobs:
         if: ${{ inputs.release_type == 'latest' && inputs.version_override == '' && steps.resolve_bump.outputs.version_bump != 'patch' }}
         id: computed_override
         run: |
-          mkdir -p .github/scripts
-          wget -q https://raw.githubusercontent.com/homebridge/.github/latest/.github/scripts/compute-version-override.cjs -O .github/scripts/compute-version-override.cjs
-          chmod +x .github/scripts/compute-version-override.cjs || true
+          mkdir -p "$RUNNER_TEMP/release-scripts"
+          wget -q https://raw.githubusercontent.com/homebridge/.github/latest/.github/scripts/compute-version-override.cjs -O "$RUNNER_TEMP/release-scripts/compute-version-override.cjs"
+          chmod +x "$RUNNER_TEMP/release-scripts/compute-version-override.cjs" || true
           BUMP_LEVEL="${{ steps.resolve_bump.outputs.version_bump }}"
-          NEXT_VERSION=$(node .github/scripts/compute-version-override.cjs "$BUMP_LEVEL")
+          NEXT_VERSION=$(node "$RUNNER_TEMP/release-scripts/compute-version-override.cjs" "$BUMP_LEVEL")
           echo "Computed explicit ${BUMP_LEVEL} version: $NEXT_VERSION"
           echo "version_override=$NEXT_VERSION" >> $GITHUB_OUTPUT
 
@@ -202,18 +207,18 @@ jobs:
       - name: Adjust version (ESM)
         if: ${{ inputs.is_esm && inputs.version_override == '' && steps.computed_override.outputs.version_override == '' }}
         run: |
-          mkdir -p .github/scripts
-          wget -q https://raw.githubusercontent.com/homebridge/.github/latest/.github/scripts/npm-version-script-esm-auto.js -O .github/scripts/npm-version-script-esm-auto.js
-          chmod +x .github/scripts/npm-version-script-esm-auto.js || true
-          node .github/scripts/npm-version-script-esm-auto.js ${{ github.ref }} ${{ inputs.release_type }}
+          mkdir -p "$RUNNER_TEMP/release-scripts"
+          wget -q https://raw.githubusercontent.com/homebridge/.github/latest/.github/scripts/npm-version-script-esm-auto.js -O "$RUNNER_TEMP/release-scripts/npm-version-script-esm-auto.js"
+          chmod +x "$RUNNER_TEMP/release-scripts/npm-version-script-esm-auto.js" || true
+          node "$RUNNER_TEMP/release-scripts/npm-version-script-esm-auto.js" ${{ github.ref }} ${{ inputs.release_type }}
 
       - name: Adjust version (CJS)
         if: ${{ !inputs.is_esm && inputs.version_override == '' && steps.computed_override.outputs.version_override == '' }}
         run: |
-          mkdir -p .github/scripts
-          wget -q https://raw.githubusercontent.com/homebridge/.github/latest/.github/scripts/npm-version-script-auto.cjs -O .github/scripts/npm-version-script-auto.cjs
-          chmod +x .github/scripts/npm-version-script-auto.cjs || true
-          node .github/scripts/npm-version-script-auto.cjs ${{ github.ref }} ${{ inputs.release_type }}
+          mkdir -p "$RUNNER_TEMP/release-scripts"
+          wget -q https://raw.githubusercontent.com/homebridge/.github/latest/.github/scripts/npm-version-script-auto.cjs -O "$RUNNER_TEMP/release-scripts/npm-version-script-auto.cjs"
+          chmod +x "$RUNNER_TEMP/release-scripts/npm-version-script-auto.cjs" || true
+          node "$RUNNER_TEMP/release-scripts/npm-version-script-auto.cjs" ${{ github.ref }} ${{ inputs.release_type }}
 
       - name: Sync package.json to release version
         run: |
