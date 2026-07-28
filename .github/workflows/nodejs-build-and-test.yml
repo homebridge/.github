@@ -100,8 +100,15 @@ jobs:
         with:
           # Tags are needed to work out what is unreleased.
           fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
 
       - name: check changelog
+        # `runs_on` is caller-configurable, and the heredoc below is bash
+        # syntax - without this the step breaks on a Windows runner, where the
+        # default shell is PowerShell.
+        shell: bash
         env:
           CHANGELOG_PATH: ${{ inputs.changelog_path }}
         run: |
