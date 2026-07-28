@@ -22,6 +22,19 @@ on:
         default: npm ci
         required: false
         type: string
+      check_changelog:
+        description: >
+          Opt in to checking that the changelog's top section lists every
+          unreleased commit, in order, using the exact commit subjects. Off by
+          default, as not every repository follows that convention.
+        default: false
+        required: false
+        type: boolean
+      changelog_path:
+        description: Path to the changelog, when `check_changelog` is enabled.
+        default: CHANGELOG.md
+        required: false
+        type: string
     secrets:
       token:
         description: The GitHub Token which is used to push to Coveralls
@@ -72,6 +85,123 @@ jobs:
           github-token: ${{ secrets.github_token }}
           flag-name: run-${{ matrix.node_version }}
           parallel: true
+
+  # Opt-in via `check_changelog: true`. Verifies the changelog's top section
+  # lists every unreleased commit, in order, using the exact commit subjects -
+  # the mismatch is otherwise only noticed at release time, when it is most
+  # inconvenient.
+  changelog:
+    if: ${{ inputs.check_changelog }}
+
+    runs-on: ${{ inputs.runs_on }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Tags are needed to work out what is unreleased.
+          fetch-depth: 0
+
+      - name: check changelog
+        env:
+          CHANGELOG_PATH: ${{ inputs.changelog_path }}
+        run: |
+          cat > /tmp/check-changelog.mjs <<'CHECK_CHANGELOG_EOF'
+          import { execSync } from 'node:child_process'
+          import { readFileSync } from 'node:fs'
+          import process from 'node:process'
+
+          /**
+           * Check that the changelog's top section lists every unreleased commit, in the
+           * order they landed.
+           *
+           * The convention this enforces: one bullet per commit, using the exact commit
+           * subject, newest at the bottom. Contributor credits may be appended as
+           * " (@user)" and are ignored when comparing.
+           */
+
+          const sh = cmd => execSync(cmd, { encoding: 'utf8' }).trim()
+
+          // Commits that legitimately have no bullet of their own. Matched on the
+          // subject rather than on which files changed: a commit that happens to touch
+          // only the changelog may still be a real change worth listing (a repo that
+          // already satisfied a sweep, for instance), so the author's intent is the
+          // better signal.
+          const IGNORED_SUBJECTS = [
+            /^v\d+\.\d+\.\d+/, // version commits made by `npm version`
+            /^chore\(release\)/, // version commits made by the release workflow
+            /^docs\(changelog\)/, // corrections to the changelog itself
+            /^Merge /, // merge commits
+          ]
+
+          function unreleasedCommits(tag) {
+            const range = tag ? `${tag}..HEAD` : 'HEAD'
+            const raw = sh(`git log --reverse --format=%s ${range}`)
+            if (!raw) {
+              return []
+            }
+            return raw.split('\n').filter(subject => !IGNORED_SUBJECTS.some(re => re.test(subject)))
+          }
+
+          function topSectionBullets(path) {
+            const lines = readFileSync(path, 'utf8').split('\n')
+            const start = lines.findIndex(l => l.startsWith('## '))
+            if (start === -1) {
+              return null
+            }
+            const rest = lines.slice(start + 1)
+            const end = rest.findIndex(l => l.startsWith('## '))
+            return (end === -1 ? rest : rest.slice(0, end))
+              .filter(l => l.startsWith('- '))
+              .map(l => l.slice(2).replace(/\s+\(@[^)]+\)\s*$/, '').trim())
+          }
+
+          const changelog = process.argv[2] ?? 'CHANGELOG.md'
+          let tag
+          try {
+            tag = sh('git describe --tags --abbrev=0')
+          } catch {
+            console.log('No tags found - nothing to compare against.')
+            process.exit(0)
+          }
+
+          const commits = unreleasedCommits(tag)
+          if (commits.length === 0) {
+            console.log(`No unreleased commits since ${tag}. Nothing to check.`)
+            process.exit(0)
+          }
+
+          const bullets = topSectionBullets(changelog)
+          if (bullets === null) {
+            console.error(`::error::${changelog} has no "## " section, but there are ${commits.length} unreleased commits since ${tag}.`)
+            process.exit(1)
+          }
+
+          const missing = commits.filter(c => !bullets.includes(c))
+          const extra = bullets.filter(b => !commits.includes(b))
+          const sameOrder = JSON.stringify(commits) === JSON.stringify(bullets)
+
+          if (missing.length === 0 && extra.length === 0 && sameOrder) {
+            console.log(`✓ ${changelog} matches all ${commits.length} unreleased commits since ${tag}.`)
+            process.exit(0)
+          }
+
+          console.error(`::error::${changelog} does not match the commits since ${tag}.`)
+          for (const m of missing) {
+            console.error(`  missing bullet for commit: ${m}`)
+          }
+          for (const e of extra) {
+            console.error(`  bullet with no matching commit: ${e}`)
+          }
+          if (!missing.length && !extra.length) {
+            console.error('  the bullets are all present but not in commit order')
+          }
+          console.error('\nExpected the top section to read:')
+          for (const c of commits) {
+            console.error(`  - ${c}`)
+          }
+          process.exit(1)
+          CHECK_CHANGELOG_EOF
+          node /tmp/check-changelog.mjs "$CHANGELOG_PATH"
 
   # Finish up the coverage reporting to Coveralls after all matrix steps of the build jobs have run
   collect_coverage_reports:
