@@ -125,7 +125,9 @@ jobs:
            *
            * The convention this enforces: one bullet per commit, using the exact commit
            * subject, newest at the bottom. Contributor credits may be appended as
-           * " (@user)" and are ignored when comparing.
+           * " (@user)" and are ignored when comparing. Where the same subject appears
+           * more than once - the usual cause being a cherry-pick between branches -
+           * one bullet covers them all.
            */
 
           const sh = cmd => execSync(cmd, { encoding: 'utf8' }).trim()
@@ -148,7 +150,21 @@ jobs:
             if (!raw) {
               return []
             }
-            return raw.split('\n').filter(subject => !IGNORED_SUBJECTS.some(re => re.test(subject)))
+            const seen = new Set()
+            return raw
+              .split('\n')
+              .filter(subject => !IGNORED_SUBJECTS.some(re => re.test(subject)))
+              // A fix cherry-picked onto a release branch as well as the main one
+              // shows up once per branch after they are merged. It is still a single
+              // change and wants a single bullet, so keep only the first sighting -
+              // the point at which it entered this release.
+              .filter((subject) => {
+                if (seen.has(subject)) {
+                  return false
+                }
+                seen.add(subject)
+                return true
+              })
           }
 
           function topSectionBullets(path) {
