@@ -24,4 +24,7 @@ jobs:
     steps:
       - uses: actions/labeler@v6
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          # Use the secret this workflow actually declares, falling back to
+          # the workflow's own token. Reading GITHUB_TOKEN directly meant a
+          # caller could pass `token` and have it silently ignored.
+          repo-token: ${{ secrets.token || github.token }}
