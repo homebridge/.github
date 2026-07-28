@@ -82,7 +82,10 @@ jobs:
         if: ${{ inputs.enable_coverage }}
         uses: coverallsapp/github-action@v2
         with:
-          github-token: ${{ secrets.github_token }}
+          # Use the secret this workflow actually declares, falling back to
+          # the workflow's own token. Reading GITHUB_TOKEN directly meant a
+          # caller could pass `token` and have it silently ignored.
+          github-token: ${{ secrets.token || github.token }}
           flag-name: run-${{ matrix.node_version }}
           parallel: true
 
@@ -240,5 +243,9 @@ jobs:
       - name: Coveralls Finished
         uses: coverallsapp/github-action@v2
         with:
-          github-token: ${{ secrets.token }}
+          # The secret is optional, so fall back to the workflow's own token.
+          # Without this, a caller that enables coverage but omits `token`
+          # uploads every report and then never closes the build off - each
+          # job goes green while Coveralls waits forever for the last one.
+          github-token: ${{ secrets.token || github.token }}
           parallel-finished: true
