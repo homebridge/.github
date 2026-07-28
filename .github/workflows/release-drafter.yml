@@ -11,6 +11,8 @@ jobs:
   update_release_draft:
     runs-on: ubuntu-latest
     steps:
-      - uses: release-drafter/release-drafter@v6
-        env:
-          GITHUB_TOKEN: ${{ secrets.token }}
+      - uses: release-drafter/release-drafter@v7
+        with:
+          # v7 introduced a `token` input, which replaces the GITHUB_TOKEN env
+          # var the action previously read.
+          token: ${{ secrets.token }}

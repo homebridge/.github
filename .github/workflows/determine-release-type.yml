@@ -25,7 +25,7 @@ jobs:
       release_type: ${{ steps.set-vars.outputs.release_type }}
       is_esm: ${{ steps.detect-esm.outputs.is_esm }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # Set branch name & release type
       - name: Set release type
