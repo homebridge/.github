@@ -112,7 +112,9 @@ jobs:
         env:
           CHANGELOG_PATH: ${{ inputs.changelog_path }}
         run: |
-          cat > /tmp/check-changelog.mjs <<'CHECK_CHANGELOG_EOF'
+          # Written to and read from RUNNER_TEMP rather than /tmp: on a Windows
+          # runner, bash's /tmp and node's /tmp are different directories.
+          cat > "$RUNNER_TEMP/check-changelog.mjs" <<'CHECK_CHANGELOG_EOF'
           import { execSync } from 'node:child_process'
           import { readFileSync } from 'node:fs'
           import process from 'node:process'
@@ -208,7 +210,7 @@ jobs:
           }
           process.exit(1)
           CHECK_CHANGELOG_EOF
-          node /tmp/check-changelog.mjs "$CHANGELOG_PATH"
+          node "$RUNNER_TEMP/check-changelog.mjs" "$CHANGELOG_PATH"
 
   # Finish up the coverage reporting to Coveralls after all matrix steps of the build jobs have run
   collect_coverage_reports:
