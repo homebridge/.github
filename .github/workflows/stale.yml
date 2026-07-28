@@ -32,7 +32,10 @@ jobs:
     steps:
       - uses: actions/stale@v11
         with:
-          repo-token: ${{ secrets.token }}
+          # The secret is optional, so fall back to the workflow's own
+          # token - passing an empty value overrides the action's default
+          # and the run fails to authenticate.
+          repo-token: ${{ secrets.token || github.token }}
           stale-issue-label: stale
           exempt-issue-labels: pinned,security,long running,discussion,vision,pending,verified,${{ inputs.exempt-issue-labels }}
           stale-issue-message: This issue has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions.
