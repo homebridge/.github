@@ -85,13 +85,16 @@ if (packageJSON.version !== publishTag) {
   console.warn(`Changing version in package.json from ${packageJSON.version} to ${publishTag}`)
 
   // save the package.json
+  // JSON.stringify does not end with a newline, but npm writes both of these
+  // files with one. Leaving it off makes the file fail an eol-last lint rule,
+  // which breaks any repo whose prepublishOnly lints the whole tree.
   packageJSON.version = publishTag
-  fs.writeFileSync('package.json', JSON.stringify(packageJSON, null, 2))
+  fs.writeFileSync('package.json', `${JSON.stringify(packageJSON, null, 2)}\n`)
 
   // perform the same change to the package-lock.json
   const packageLockJSON = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'))
   packageLockJSON.version = publishTag
-  fs.writeFileSync('package-lock.json', JSON.stringify(packageLockJSON, null, 2))
+  fs.writeFileSync('package-lock.json', `${JSON.stringify(packageLockJSON, null, 2)}\n`)
 } else {
   console.warn(`Leaving version in package.json at ${packageJSON.version}`)
 }
