@@ -5,12 +5,20 @@ on:
     secrets:
       token:
         description: The GitHub Token
-        required: true
+        required: false
 
 jobs:
-  update_release_draft:
+  label:
+    name: PR Labeler
+    permissions:
+      contents: read
+      pull-requests: write
+
     runs-on: ubuntu-latest
+
     steps:
       - uses: TimonVS/pr-labeler-action@v5
         env:
-          GITHUB_TOKEN: ${{ secrets.token }}
+          # Use the secret this workflow actually declares, falling back to
+          # the workflow's own token — the same pattern as labeler.yml.
+          GITHUB_TOKEN: ${{ secrets.token || github.token }}
