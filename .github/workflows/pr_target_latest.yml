@@ -1,23 +1,23 @@
-name: PR Target Beta
+name: PR Target Latest
 
 # Reusable check that fails when a pull request targets the repository's default branch.
 # Release pull requests from a beta branch (beta-x.y.z) in the same repository are allowed.
 #
-# Caller example (.github/workflows/pr-target-beta.yml):
+# Caller example (.github/workflows/pr_target_latest.yml):
 #
 #   on:
 #     pull_request_target:
 #       types: [opened, reopened, edited, synchronize]
 #   jobs:
 #     check:
-#       uses: homebridge/.github/.github/workflows/pr-target-beta.yml@latest
+#       uses: homebridge/.github/.github/workflows/pr_target_latest.yml@latest
 
 on:
   workflow_call:
 
 jobs:
   check:
-    name: PR Target Beta
+    name: PR Target Latest
     permissions: {}
 
     runs-on: ubuntu-latest
