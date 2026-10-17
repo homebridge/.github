@@ -9,13 +9,6 @@ If the repository does not currently have a beta branch, raise the pull request 
 During review it will be moved to the next beta branch.
 -->
 
-> [!IMPORTANT]
-> Pull requests must be raised against the repository's latest **beta** branch (`beta-x.y.z`, the highest version under the repository's **Branches** tab). We do not merge pull requests raised against `latest`. Only release commits land there.
->
-> If this pull request targets `latest`, click **Edit** next to the title and change the base branch.
->
-> If the repository does not currently have a beta branch, raise the pull request against `latest`. During review it will be moved to the next beta branch.
-
 ## :recycle: Current situation
 
 _Describe the current situation. Explain current problems, if there are any. Be as descriptive as possible (e.g., including examples or code snippets)._
@@ -39,3 +32,10 @@ _Which tests were added? Which existing tests were adapted/changed? Which situat
 ### Reviewer Nudging
 
 _Where should the reviewer start? what is a good entry point?_
+
+> [!IMPORTANT]
+> Pull requests must be raised against the repository's latest **beta** branch (`beta-x.y.z`, the highest version under the repository's **Branches** tab). We do not merge pull requests raised against `latest`. Only release commits land there.
+>
+> If this pull request targets `latest`, click **Edit** next to the title and change the base branch.
+>
+> If the repository does not currently have a beta branch, raise the pull request against `latest`. During review it will be moved to the next beta branch.
