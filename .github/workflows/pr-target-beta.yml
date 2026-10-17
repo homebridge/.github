@@ -1,7 +1,7 @@
 name: PR Target Beta
 
-# Reusable check that fails when a pull request does not target a beta branch (beta-x.y.z).
-# Release pull requests from a beta branch into latest are allowed.
+# Reusable check that fails when a pull request targets the repository's default branch.
+# Release pull requests from a beta branch (beta-x.y.z) in the same repository are allowed.
 #
 # Caller example (.github/workflows/pr-target-beta.yml):
 #
@@ -26,11 +26,12 @@ jobs:
       - name: Check base branch
         env:
           BASE: ${{ github.event.pull_request.base.ref }}
+          DEFAULT: ${{ github.event.repository.default_branch }}
           HEAD: ${{ github.event.pull_request.head.ref }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           REPO: ${{ github.repository }}
         run: |
-          if [[ "$BASE" == beta-* ]]; then
+          if [[ "$BASE" != "$DEFAULT" ]]; then
             echo "Targets $BASE"
             exit 0
           fi
@@ -38,5 +39,5 @@ jobs:
             echo "Release pull request from $HEAD into $BASE"
             exit 0
           fi
-          echo "::error::Pull requests must target the current beta branch (beta-x.y.z), not $BASE. Click Edit next to the title and change the base branch. If this repository has no beta branch, it will be moved during review."
+          echo "::error::Pull requests must target the current beta branch (beta-x.y.z), not the default branch $BASE. Click Edit next to the title and change the base branch. If this repository has no beta branch, it will be moved during review."
           exit 1
