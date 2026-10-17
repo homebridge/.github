@@ -1,110 +1,42 @@
 name: PR Target Beta
 
-# Reusable check that pull requests target the current beta branch (beta-x.y.z) instead of latest.
-#
-# Pull requests opened against latest get a comment pointing at the highest beta branch, and are
-# moved to it when auto_retarget is true. When the repository has no beta branch, the comment says
-# the pull request will be moved during review. Release pull requests from a beta branch, and
-# authors listed in ignore_authors, are skipped.
+# Reusable check that fails when a pull request does not target a beta branch (beta-x.y.z).
+# Release pull requests from a beta branch into latest are allowed.
 #
 # Caller example (.github/workflows/pr-target-beta.yml):
 #
 #   on:
 #     pull_request_target:
-#       types: [opened, reopened, edited]
+#       types: [opened, reopened, edited, synchronize]
 #   jobs:
 #     check:
 #       uses: homebridge/.github/.github/workflows/pr-target-beta.yml@latest
-#       with:
-#         auto_retarget: true
 
 on:
   workflow_call:
-    inputs:
-      protected_branch:
-        description: Branch that only receives release commits
-        type: string
-        default: latest
-      auto_retarget:
-        description: Move the pull request to the current beta branch instead of only commenting
-        type: boolean
-        default: false
-      ignore_authors:
-        description: Comma-separated logins to skip
-        type: string
-        default: dependabot[bot],renovate[bot],github-actions[bot]
-    secrets:
-      token:
-        description: The GitHub Token
-        required: false
 
 jobs:
   check:
     name: PR Target Beta
-    if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: write
+    permissions: {}
 
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/github-script@v8
+      - name: Check base branch
         env:
-          PROTECTED_BRANCH: ${{ inputs.protected_branch }}
-          AUTO_RETARGET: ${{ inputs.auto_retarget }}
-          IGNORE_AUTHORS: ${{ inputs.ignore_authors }}
-        with:
-          github-token: ${{ secrets.token || github.token }}
-          script: |
-            const pr = context.payload.pull_request
-            const { owner, repo } = context.repo
-            const protectedBranch = process.env.PROTECTED_BRANCH
-            const autoRetarget = process.env.AUTO_RETARGET === 'true'
-            const ignoreAuthors = process.env.IGNORE_AUTHORS.split(',').map(s => s.trim()).filter(Boolean)
-            const marker = '<!-- homebridge-pr-target-beta -->'
-
-            if (pr.base.ref !== protectedBranch) {
-              core.info(`Base is ${pr.base.ref}, nothing to do`)
-              return
-            }
-            if (ignoreAuthors.includes(pr.user.login)) {
-              core.info(`Author ${pr.user.login} is ignored`)
-              return
-            }
-            // Release pull requests promote a beta branch from this repository into latest
-            if (pr.head.repo?.full_name === `${owner}/${repo}` && /^beta-/.test(pr.head.ref)) {
-              core.info(`Release pull request from ${pr.head.ref}, skipping`)
-              return
-            }
-
-            // Find the highest beta-x.y.z branch
-            const branches = await github.paginate(github.rest.repos.listBranches, { owner, repo, per_page: 100 })
-            const betas = branches
-              .map(b => b.name)
-              .map(name => ({ name, m: name.match(/^beta-(\d+)\.(\d+)\.(\d+)$/) }))
-              .filter(b => b.m)
-              .map(b => ({ name: b.name, v: b.m.slice(1).map(Number) }))
-              .sort((a, b) => b.v[0] - a.v[0] || b.v[1] - a.v[1] || b.v[2] - a.v[2])
-            const beta = betas[0]?.name
-
-            let body
-            if (!beta) {
-              body = `This pull request targets \`${protectedBranch}\`. This repository does not currently have a beta branch, so it will be moved to the next beta branch during review.`
-            } else if (autoRetarget) {
-              await github.rest.pulls.update({ owner, repo, pull_number: pr.number, base: beta })
-              body = `This pull request targeted \`${protectedBranch}\`, which only receives release commits, so it has been moved to the current beta branch \`${beta}\`. If GitHub now reports conflicts or unrelated commits, please rebase your branch onto \`${beta}\`.`
-            } else {
-              body = `Pull requests must target the current beta branch. We do not merge pull requests raised against \`${protectedBranch}\`.\n\nPlease click **Edit** next to the title and change the base branch to \`${beta}\`.`
-            }
-            body = `${marker}\n${body}`
-
-            // Update our earlier comment instead of adding another one
-            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: pr.number, per_page: 100 })
-            const existing = comments.find(c => c.body?.startsWith(marker))
-            if (existing) {
-              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body })
-            } else {
-              await github.rest.issues.createComment({ owner, repo, issue_number: pr.number, body })
-            }
+          BASE: ${{ github.event.pull_request.base.ref }}
+          HEAD: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [[ "$BASE" == beta-* ]]; then
+            echo "Targets $BASE"
+            exit 0
+          fi
+          if [[ "$HEAD_REPO" == "$REPO" && "$HEAD" == beta-* ]]; then
+            echo "Release pull request from $HEAD into $BASE"
+            exit 0
+          fi
+          echo "::error::Pull requests must target the current beta branch (beta-x.y.z), not $BASE. Click Edit next to the title and change the base branch. If this repository has no beta branch, it will be moved during review."
+          exit 1
