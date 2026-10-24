@@ -39,5 +39,5 @@ jobs:
             echo "Release pull request from $HEAD into $BASE"
             exit 0
           fi
-          echo "::error::Pull requests must target the current beta branch (beta-x.y.z), not the default branch $BASE. Click Edit next to the title and change the base branch. If this repository has no beta branch, it will be moved during review."
+          echo "::error::Pull requests must target the current beta branch (beta-x.y.z), not the default branch $BASE. Click Edit next to the title and change the base branch. If this repository has no beta branch, it will be created during review."
           exit 1
