@@ -34,7 +34,10 @@ if (!refArgument) {
 function getTagVersionFromNpm(baseVersion, tag) {
   try {
     return JSON.parse(child_process.execSync(`npm info ${packageJSON.name} versions --json`).toString('utf8').trim())
-      .filter(v => tag === 'latest' ? v === baseVersion : v.startsWith(`${baseVersion}-${tag}.`)) // find all published versions for this base version and tag
+      // find all published versions for this base version and tag
+      .filter(v => tag === 'latest'
+        ? v === baseVersion
+        : v.startsWith(`${baseVersion}-${tag}.`))
       .reduce((_, current) => current, '') // choose the last as they're sorted in ascending order, or '' if there are none
   } catch (e) {
     console.error(`Failed to query the npm registry for the latest version for tag: ${tag}`, e)
