@@ -1,7 +1,8 @@
 name: PR Target Latest
 
 # Reusable check that fails when a pull request targets the repository's default branch.
-# Release pull requests from a beta branch (beta-x.y.z) in the same repository are allowed.
+# Release pull requests from a beta branch (beta-x.y.z) in the same repository are allowed,
+# and so are Dependabot pull requests, which always target the default branch.
 #
 # Caller example (.github/workflows/pr_target_latest.yml):
 #
@@ -29,6 +30,7 @@ jobs:
           DEFAULT: ${{ github.event.repository.default_branch }}
           HEAD: ${{ github.event.pull_request.head.ref }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
           REPO: ${{ github.repository }}
         run: |
           if [[ "$BASE" != "$DEFAULT" ]]; then
@@ -37,6 +39,10 @@ jobs:
           fi
           if [[ "$HEAD_REPO" == "$REPO" && "$HEAD" == beta-* ]]; then
             echo "Release pull request from $HEAD into $BASE"
+            exit 0
+          fi
+          if [[ "$HEAD_REPO" == "$REPO" && "$AUTHOR" == "dependabot[bot]" ]]; then
+            echo "Dependabot pull request from $HEAD into $BASE"
             exit 0
           fi
           echo "::error::Pull requests must target the current beta branch (beta-x.y.z), not the default branch $BASE. Click Edit next to the title and change the base branch. If this repository has no beta branch, it will be created during review."
