@@ -2,8 +2,8 @@
 
 ## Guidelines
 
-- **Node 20 LTS:** Homebridge projects have (if not stated otherwise) a minimum Node version requirement of v20.
-  Pull requests MUST NOT require a Node version greater than that unless the feature is
+- **Node.js versions:** Homebridge projects (if not stated otherwise) support Node.js v22 (v22.12.0 or later), v24 and v26.
+  Pull requests MUST NOT require a newer Node.js version than the oldest of these unless the feature is
   enabled/backported via [TypeScript][link-typescript]. If a higher version requirement may be justified
   you SHALL include your reasoning in the pull request discussion.
 
