@@ -1,0 +1,199 @@
+name: NPM Release
+
+# The whole npm release for a package, called from the package's release.yml:
+# - Latest: GitHub release events (tag vX.Y.Z)
+# - Beta: runs on beta-* branches
+# - Alpha: runs on alpha-* branches
+# Anything else fails at the first job, so nothing is published.
+#
+# npm trusted publishing validates the calling workflow's filename, and the
+# caller must grant id-token: write and contents: write.
+#
+# Example caller, saved as .github/workflows/release.yml in the package's repo:
+#
+#   name: Release
+#
+#   on:
+#     release:
+#       types: [released]
+#     push:
+#       branches:
+#         - beta-*.*.*
+#         - alpha-*.*.*
+#     workflow_dispatch:
+#
+#   permissions:
+#     id-token: write
+#     contents: write
+#
+#   # Don't cancel: a run stopped after npm publish leaves a version with no pre-release
+#   concurrency:
+#     group: ${{ github.workflow }}-${{ github.ref }}
+#     cancel-in-progress: false
+#
+#   jobs:
+#     release:
+#       if: ${{ github.repository == 'homebridge/your-package' }}
+#       uses: homebridge/.github/.github/workflows/npm-release.yml@latest
+
+on:
+  workflow_call:
+
+jobs:
+  determine:
+    name: Determine Release Type
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      release_type: ${{ steps.release-type.outputs.type }}
+      npm_tag: ${{ steps.release-type.outputs.tag }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Determine release type
+        id: release-type
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+        run: |
+          if [[ "$EVENT_NAME" == "release" ]]; then
+            TYPE=latest
+          elif [[ "$REF" == refs/heads/beta-* ]]; then
+            TYPE=beta
+          elif [[ "$REF" == refs/heads/alpha-* ]]; then
+            TYPE=alpha
+          else
+            echo "::error::No valid release type for $EVENT_NAME on $REF - run from a beta-*/alpha-* branch, or publish a GitHub release"
+            exit 1
+          fi
+          echo "type=$TYPE" >> "$GITHUB_OUTPUT"
+          echo "tag=$TYPE" >> "$GITHUB_OUTPUT"
+
+      - name: Get Release Tag (Latest Only)
+        if: steps.release-type.outputs.type == 'latest'
+        id: get_version
+        uses: jannemattila/get-version-from-tag@v4
+
+      - name: Tag Info (Latest Only)
+        if: steps.release-type.outputs.type == 'latest'
+        run: |
+          echo "Release Tag: ${{ github.ref }}"
+          echo "Latest Tag: ${{ steps.get_version.outputs.version }}"
+
+      - name: Tag Info Matches (Latest Only)
+        if: steps.release-type.outputs.type == 'latest' && endsWith(github.ref, steps.get_version.outputs.version)
+        run: |
+          echo Latest Tag matches Release tag
+
+      - name: Tag Info Doesn't Match (Latest Only)
+        if: steps.release-type.outputs.type == 'latest' && !endsWith(github.ref, steps.get_version.outputs.version)
+        run: |
+          echo Latest Tag does not matches Release tag
+          exit 1
+
+  publish:
+    needs: [determine]
+    name: Publish to npm (${{ needs.determine.outputs.npm_tag }})
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      npm_version: ${{ steps.get-published-version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Upgrade npm for OIDC support
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Handle prerelease versioning
+        if: needs.determine.outputs.release_type == 'beta' || needs.determine.outputs.release_type == 'alpha'
+        env:
+          REF: ${{ github.ref }}
+          RELEASE_TYPE: ${{ needs.determine.outputs.release_type }}
+        run: |
+          # Download versioning script from homebridge/.github
+          mkdir -p .github
+          wget -q https://raw.githubusercontent.com/homebridge/.github/latest/.github/npm-version-script-esm.js -O .github/npm-version-script-esm.js
+
+          # Run the script to set base version
+          node .github/npm-version-script-esm.js "$REF" "$RELEASE_TYPE"
+
+          # Add prerelease suffix
+          npm version pre --preid="$RELEASE_TYPE" --no-git-tag-version
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish to npm with OIDC
+        run: npm publish --tag ${{ needs.determine.outputs.npm_tag }} --provenance --access public
+
+      - name: Get published version
+        id: get-published-version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Published version: $VERSION"
+
+      - name: Add published version to job summary
+        env:
+          VERSION: ${{ steps.get-published-version.outputs.version }}
+          NPM_TAG: ${{ needs.determine.outputs.npm_tag }}
+        run: |
+          PACKAGE=$(node -p "require('./package.json').name")
+          {
+            echo "### Published to npm"
+            echo ""
+            echo "| Package | Version | Tag |"
+            echo "|---|---|---|"
+            echo "| \`$PACKAGE\` | [$VERSION](https://www.npmjs.com/package/$PACKAGE/v/$VERSION) | \`$NPM_TAG\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  pre-release:
+    needs: [determine, publish]
+    name: Create GitHub Pre-Release
+    if: |
+      always() &&
+      needs.publish.result == 'success' &&
+      (needs.determine.outputs.release_type == 'beta' || needs.determine.outputs.release_type == 'alpha')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Runs after npm publish and falls back to plain notes, so it can never block a release
+      - name: Generate pre-release notes
+        env:
+          VERSION: ${{ needs.publish.outputs.npm_version }}
+          RELEASE_TYPE: ${{ needs.determine.outputs.release_type }}
+        run: |
+          if ! { wget -q https://raw.githubusercontent.com/homebridge/.github/latest/.github/scripts/generate-prerelease-notes.mjs -O "$RUNNER_TEMP/generate-prerelease-notes.mjs" \
+            && node "$RUNNER_TEMP/generate-prerelease-notes.mjs" --version "$VERSION" --type "$RELEASE_TYPE" --output prerelease-notes.md; }; then
+            echo "::warning::Could not generate pre-release notes, using the version only"
+            echo "v$VERSION" > prerelease-notes.md
+          fi
+
+      - name: Create nightly release
+        id: create_release
+        uses: viperproject/create-nightly-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.publish.outputs.npm_version }}
+          release_name: v${{ needs.publish.outputs.npm_version }}
+          body_path: prerelease-notes.md
+          keep_num: 5
+          keep_tags: false
