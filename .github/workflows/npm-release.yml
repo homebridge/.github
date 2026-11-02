@@ -8,6 +8,33 @@ name: NPM Release
 #
 # npm trusted publishing validates the calling workflow's filename, and the
 # caller must grant id-token: write and contents: write.
+#
+# Example caller, saved as .github/workflows/release.yml in the package's repo:
+#
+#   name: Release
+#
+#   on:
+#     release:
+#       types: [released]
+#     push:
+#       branches:
+#         - beta-*.*.*
+#         - alpha-*.*.*
+#     workflow_dispatch:
+#
+#   permissions:
+#     id-token: write
+#     contents: write
+#
+#   # Don't cancel: a run stopped after npm publish leaves a version with no pre-release
+#   concurrency:
+#     group: ${{ github.workflow }}-${{ github.ref }}
+#     cancel-in-progress: false
+#
+#   jobs:
+#     release:
+#       if: ${{ github.repository == 'homebridge/your-package' }}
+#       uses: homebridge/.github/.github/workflows/npm-release.yml@latest
 
 on:
   workflow_call:
